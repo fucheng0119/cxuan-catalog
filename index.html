@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a5276">
+<title>澄軒商品目錄</title>
+
+<!-- PWA: Android Chrome -->
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%20%22%E6%BE%84%E8%BB%92%E9%A3%B2%E6%B0%B4%E5%95%86%E5%93%81%E7%9B%AE%E9%8C%84%22%2C%20%22short_name%22%3A%20%22%E6%BE%84%E8%BB%92%E7%9B%AE%E9%8C%84%22%2C%20%22description%22%3A%20%2212%20%E5%BA%97%E5%88%86%E5%BA%97%E6%88%90%E6%9C%AC%20/%20%E7%B5%82%E7%AB%AF%E5%94%AE%E5%83%B9%E5%8D%B3%E6%99%82%E6%9F%A5%E8%A9%A2%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23f5f7fa%22%2C%20%22theme_color%22%3A%20%22%231a5276%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22data%3Aimage/svg%2Bxml%2C%253Csvg%2520xmlns%253D%2522http%253A//www.w3.org/2000/svg%2522%2520viewBox%253D%25220%25200%2520512%2520512%2522%253E%250A%253Cdefs%253E%253ClinearGradient%2520id%253D%2522g%2522%2520x1%253D%25220%2522%2520y1%253D%25220%2522%2520x2%253D%25221%2522%2520y2%253D%25221%2522%253E%250A%253Cstop%2520offset%253D%25220%2525%2522%2520stop-color%253D%2522%25231a5276%2522/%253E%253Cstop%2520offset%253D%2522100%2525%2522%2520stop-color%253D%2522%25232980b9%2522/%253E%250A%253C/linearGradient%253E%253C/defs%253E%250A%253Crect%2520width%253D%2522512%2522%2520height%253D%2522512%2522%2520rx%253D%252296%2522%2520fill%253D%2522url%2528%2523g%2529%2522/%253E%250A%253Cpath%2520d%253D%2522M256%2520100%2520C%2520180%2520200%252C%2520140%2520270%252C%2520140%2520330%2520C%2520140%2520395%252C%2520192%2520440%252C%2520256%2520440%2520C%2520320%2520440%252C%2520372%2520395%252C%2520372%2520330%2520C%2520372%2520270%252C%2520332%2520200%252C%2520256%2520100%2520Z%2522%2520fill%253D%2522%2523fff%2522%2520opacity%253D%25220.95%2522/%253E%250A%253Ctext%2520x%253D%2522256%2522%2520y%253D%2522370%2522%2520font-family%253D%2522-apple-system%252Csans-serif%2522%2520font-size%253D%2522120%2522%2520font-weight%253D%2522900%2522%2520text-anchor%253D%2522middle%2522%2520fill%253D%2522%25231a5276%2522%253E%25E6%25BE%2584%253C/text%253E%250A%253C/svg%253E%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/svg%2Bxml%22%2C%20%22purpose%22%3A%20%22any%20maskable%22%7D%5D%7D">
+
+<!-- PWA: iOS Safari Add to Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="澄軒目錄">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%231a5276%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%232980b9%22/%3E%0A%3C/linearGradient%3E%3C/defs%3E%0A%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Cpath%20d%3D%22M256%20100%20C%20180%20200%2C%20140%20270%2C%20140%20330%20C%20140%20395%2C%20192%20440%2C%20256%20440%20C%20320%20440%2C%20372%20395%2C%20372%20330%20C%20372%20270%2C%20332%20200%2C%20256%20100%20Z%22%20fill%3D%22%23fff%22%20opacity%3D%220.95%22/%3E%0A%3Ctext%20x%3D%22256%22%20y%3D%22370%22%20font-family%3D%22-apple-system%2Csans-serif%22%20font-size%3D%22120%22%20font-weight%3D%22900%22%20text-anchor%3D%22middle%22%20fill%3D%22%231a5276%22%3E%E6%BE%84%3C/text%3E%0A%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20512%20512%22%3E%0A%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%0A%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%231a5276%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%232980b9%22/%3E%0A%3C/linearGradient%3E%3C/defs%3E%0A%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22url%28%23g%29%22/%3E%0A%3Cpath%20d%3D%22M256%20100%20C%20180%20200%2C%20140%20270%2C%20140%20330%20C%20140%20395%2C%20192%20440%2C%20256%20440%20C%20320%20440%2C%20372%20395%2C%20372%20330%20C%20372%20270%2C%20332%20200%2C%20256%20100%20Z%22%20fill%3D%22%23fff%22%20opacity%3D%220.95%22/%3E%0A%3Ctext%20x%3D%22256%22%20y%3D%22370%22%20font-family%3D%22-apple-system%2Csans-serif%22%20font-size%3D%22120%22%20font-weight%3D%22900%22%20text-anchor%3D%22middle%22%20fill%3D%22%231a5276%22%3E%E6%BE%84%3C/text%3E%0A%3C/svg%3E">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:#f5f7fa; color:#333;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.header {
+  background:linear-gradient(135deg,#1a5276,#2980b9);
+  color:#fff; padding:16px; text-align:center;
+  position:sticky; top:env(safe-area-inset-top); z-index:100;
+}
+.header h1 { font-size:18px; margin-bottom:4px; }
+.header .sub { font-size:12px; opacity:0.85; }
+.search-wrap {
+  padding:12px 16px 8px;
+  position:sticky; z-index:99;
+  background:#f5f7fa;
+}
+.search-box {
+  width:100%;
+  padding:14px 16px 14px 42px;
+  border:2px solid #ddd;
+  border-radius:12px;
+  font-size:16px;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 12px center;
+  transition:border-color .2s;
+  -webkit-appearance:none;
+}
+.search-box:focus { outline:none; border-color:#2980b9; }
+
+.filter-row {
+  display:flex; gap:8px;
+  padding:6px 16px 12px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scroll-behavior:smooth;
+}
+.filter-row::-webkit-scrollbar { display:none; }
+
+/* CHIP — 加大成 44px 高度，使用 button 元素 */
+.chip {
+  flex-shrink:0;
+  min-height:40px;
+  padding:10px 18px;
+  border-radius:22px;
+  font-size:14px;
+  font-weight:500;
+  border:1.5px solid #ddd;
+  background:#fff;
+  color:#333;
+  cursor:pointer;
+  transition:all .15s;
+  touch-action:manipulation;       /* 關鍵：去掉 300ms 延遲 */
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-appearance:none;
+  font-family:inherit;
+  white-space:nowrap;
+}
+.chip:active { transform:scale(0.96); background:#eef5fb; }
+.chip.active {
+  background:#2980b9; color:#fff; border-color:#2980b9;
+  box-shadow:0 2px 6px rgba(41,128,185,0.3);
+}
+
+.stats { padding:4px 16px 8px; font-size:12px; color:#888; }
+.list { padding:0 12px 80px; }
+.card {
+  background:#fff; border-radius:12px;
+  margin-bottom:8px; padding:14px 16px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.card-left { flex:1; min-width:0; padding-right:12px; }
+.card-name { font-size:15px; font-weight:600; line-height:1.3; word-break:break-word; }
+.card-vendor { font-size:12px; color:#888; margin-top:3px; }
+.card-right { text-align:right; flex-shrink:0; }
+.price-store { font-size:18px; font-weight:700; color:#2980b9; }
+.price-retail { font-size:13px; color:#e74c3c; margin-top:2px; }
+.price-label { font-size:10px; color:#aaa; }
+
+.empty { text-align:center; padding:40px 20px; color:#aaa; }
+.empty-icon { font-size:48px; margin-bottom:12px; }
+
+.vendor-header {
+  padding:12px 16px 6px;
+  font-size:13px; font-weight:700;
+  color:#1a5276;
+  border-bottom:2px solid #2980b9;
+  margin:8px 0 4px;
+}
+
+.install-banner {
+  position:fixed; bottom:16px; left:16px; right:16px;
+  background:#2980b9; color:#fff;
+  padding:12px 16px; border-radius:12px;
+  font-size:13px; display:none;
+  align-items:center; justify-content:space-between;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:200;
+}
+.install-banner button {
+  background:#fff; color:#2980b9;
+  border:none; padding:8px 16px; border-radius:8px;
+  font-size:13px; font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>澄軒飲水 商品目錄</h1>
+  <div class="sub">分店成本 ＆ 終端售價 即時查詢</div>
+</div>
+
+<div class="search-wrap">
+  <input type="text" class="search-box" id="search" placeholder="輸入商品名稱、品牌搜尋..." autocomplete="off" inputmode="search">
+</div>
+
+<div class="filter-row" id="filters"></div>
+<div class="stats" id="stats"></div>
+<div class="list" id="list"></div>
+
+<div class="install-banner" id="installBanner">
+  <span>📲 加到主畫面當 App 用</span>
+  <button id="installBtn">安裝</button>
+</div>
+
+<script>
+const P = [{"n":"3M AQUA-PURE 淨熱一體觸控式櫥下熱飲機 HPURE-15G","s":18700,"r":28000,"v":"3M"},{"n":"3m-sft-100","s":44000,"r":64900,"v":"3M"},{"n":"3m-sft-150","s":56100,"r":74900,"v":"3M"},{"n":"3m-sft-200","s":68200,"r":90900,"v":"3M"},{"n":"3m-vst100","s":37300,"r":55900,"v":"3M"},{"n":"3m-vst150","s":44000,"r":65900,"v":"3M"},{"n":"10\"udf樹脂（優尼）","s":138,"r":250,"v":"優尼"},{"n":"UT-430藍中空絲膜","s":430,"r":1000,"v":"優尼"},{"n":"日本碳","s":150,"r":450,"v":"優尼"},{"n":"竹碳","s":110,"r":250,"v":"優尼"},{"n":"鹽錠（優尼）（1棧板110包）（1包10公斤）","s":150,"r":450,"v":"優尼"},{"n":"YS-8061RO","s":5600,"r":13800,"v":"元山"},{"n":"YS-9816CTP-元山8061第一道濾心","s":660,"r":1880,"v":"元山"},{"n":"YS-9816CTR-元山8061第二道濾心","s":1980,"r":4800,"v":"元山"},{"n":"元山-UVC殺菌便捷式滅菌器","s":1500,"r":3880,"v":"元山"},{"n":"全屋淨SF-UD2-21L的濾心","s":1200,"r":3800,"v":"全屋淨"},{"n":"全屋淨SF-UD2-21L軟淨一體機（6台價）","s":15500,"r":48000,"v":"全屋淨"},{"n":"全屋淨SF-UD2-21L軟淨一體機（單台價）","s":16500,"r":48000,"v":"全屋淨"},{"n":"全屋淨SF-UD2-32L雙軟一體機（6台價）","s":15000,"r":48000,"v":"全屋淨"},{"n":"全屋淨SF-UD2-32L雙軟一體機（單台價）","s":16000,"r":48000,"v":"全屋淨"},{"n":"全屋淨專用防塵套","s":1300,"r":2500,"v":"全屋淨"},{"n":"普利創 DF-400+","s":4800,"r":9900,"v":"全營"},{"n":"普立創 C2後置活性碳濾心","s":390,"r":800,"v":"全營"},{"n":"普立創 PC全效複合濾心 (DF-400第一道)","s":420,"r":850,"v":"全營"},{"n":"普立創 RO逆滲透膜濾心","s":1480,"r":3850,"v":"全營"},{"n":"金屬減壓閥","s":256,"r":800,"v":"全營"},{"n":"GE旗艦雙機 極潤 15A + AQ-300","s":55785,"r":88000,"v":"奇異"},{"n":"GE豪宅滿配 極潤 35A + AQ-300 + CPF-3-M","s":77485,"r":113900,"v":"奇異"},{"n":"GE豪宅雙機 極潤 35A + AQ-300","s":74785,"r":108000,"v":"奇異"},{"n":"GE頂級滿配 極潤 15A + AQ-300 + CPF-3-M","s":58485,"r":93900,"v":"奇異"},{"n":"MF-00531PP-003","s":540,"r":890,"v":"奇異"},{"n":"UA-2001JBK 簡約時尚氣泡水機","s":2000,"r":2690,"v":"奇異"},{"n":"UP-9200SS 全戶式不鏽鋼淨水器","s":11000,"r":22900,"v":"奇異"},{"n":"UW-2212HW-1 LED觸控式廚下型節能飲水機","s":14800,"r":24900,"v":"奇異"},{"n":"全戶淨水 極淨(15A)","s":44000,"r":70800,"v":"奇異"},{"n":"全戶淨水 極淨(30A)","s":59500,"r":94800,"v":"奇異"},{"n":"全戶淨水 極潤(15A)","s":49000,"r":78000,"v":"奇異"},{"n":"全戶淨水 極潤(35A)","s":68000,"r":98000,"v":"奇異"},{"n":"全戶淨水 極護(40A)前置過濾器","s":9900,"r":23800,"v":"奇異"},{"n":"廚下式淨水器 極煦","s":21400,"r":35800,"v":"奇異"},{"n":"廚下式淨水器 極熱+極光5800","s":22600,"r":38800,"v":"奇異"},{"n":"廚下式淨水器 極熱220v","s":10700,"r":29000,"v":"奇異"},{"n":"廚下式淨水器 極熱5800","s":11300,"r":18800,"v":"奇異"},{"n":"氣泡水機 極沁","s":74700,"r":120320,"v":"奇異"},{"n":"氣泡水機 附加鋼瓶(13.4L)+9000","s":78300,"r":126080,"v":"奇異"},{"n":"氣泡水機 附加鋼瓶(6L)+7000","s":80500,"r":124800,"v":"奇異"},{"n":"3公升充氣(瓶換瓶)","s":1250,"r":1700,"v":"宮黛"},{"n":"3公升鋼瓶組","s":2750,"r":3250,"v":"宮黛"},{"n":"CROSS III","s":26500,"r":40900,"v":"宮黛"},{"n":"GD CROSS (雙溫)","s":26500,"r":36900,"v":"宮黛"},{"n":"GD MAX (單支濾芯)","s":1500,"r":3000,"v":"宮黛"},{"n":"GD PRO (單支濾芯)","s":350,"r":600,"v":"宮黛"},{"n":"GD RESIN (單支濾芯)","s":400,"r":600,"v":"宮黛"},{"n":"GD SODA (氣泡水機)","s":30500,"r":50800,"v":"宮黛"},{"n":"GD SOLO (熱交換)","s":23500,"r":35800,"v":"宮黛"},{"n":"GD TWINKLE (氣泡水功能)","s":23500,"r":39300,"v":"宮黛"},{"n":"GD600 灰","s":15500,"r":28800,"v":"宮黛"},{"n":"GD600 灰(搭 RO)","s":25900,"r":38800,"v":"宮黛"},{"n":"GD600 銀","s":15500,"r":28800,"v":"宮黛"},{"n":"GD600 黑","s":15500,"r":28800,"v":"宮黛"},{"n":"GD600銀 (搭 RO)","s":25900,"r":38800,"v":"宮黛"},{"n":"GD600黑 (搭 RO)","s":25900,"r":38800,"v":"宮黛"},{"n":"GD800 灰","s":20500,"r":34800,"v":"宮黛"},{"n":"GD800 銀","s":20500,"r":34800,"v":"宮黛"},{"n":"GD800 黑","s":20500,"r":34800,"v":"宮黛"},{"n":"GD800灰 (搭 RO)","s":30000,"r":44800,"v":"宮黛"},{"n":"GD800銀 (搭 RO)","s":30000,"r":44800,"v":"宮黛"},{"n":"GD800黑 (搭 RO)","s":30000,"r":44800,"v":"宮黛"},{"n":"GDCROSS (搭 RO)","s":32500,"r":46900,"v":"宮黛"},{"n":"GDCROSS III (搭 RO)","s":35500,"r":50900,"v":"宮黛"},{"n":"GDIZERO 直輸機","s":7500,"r":20800,"v":"宮黛"},{"n":"GDSODA (搭 RO)","s":39500,"r":60800,"v":"宮黛"},{"n":"GDSOLO (搭 RO)","s":32500,"r":45800,"v":"宮黛"},{"n":"GDTwinkle (搭 RO)","s":35500,"r":49300,"v":"宮黛"},{"n":"ST3310殺菌濾心小T","s":450,"r":600,"v":"宮黛"},{"n":"ik smile廚下加熱器（銀色）","s":8500,"r":18800,"v":"宮黛"},{"n":"ik smile廚下加熱器（黑色）","s":8500,"r":18800,"v":"宮黛"},{"n":"宮黛 IZERO II","s":10000,"r":20800,"v":"宮黛"},{"n":"宮黛 IZERO專用龍頭單買(銀)","s":2500,"r":3500,"v":"宮黛"},{"n":"宮黛 IZERO專用龍頭單買(黑)","s":2500,"r":3500,"v":"宮黛"},{"n":"宮黛 IZERO濾芯一年份","s":1200,"r":2200,"v":"宮黛"},{"n":"宮黛 IZERO濾芯兩年份","s":2400,"r":4500,"v":"宮黛"},{"n":"宮黛三道淨水器","s":3400,"r":8800,"v":"宮黛"},{"n":"AUT601CF/96 3in1 7063小淨靈第1道","s":2244,"r":3290,"v":"建達"},{"n":"AUT601R23/96 AQP-RO 7063小淨靈第2道","s":5449,"r":7990,"v":"建達"},{"n":"AUT604CB/96 ALK 7063小淨靈第3道","s":1289,"r":1890,"v":"建達"},{"n":"飛利浦AUT-7063小淨靈","s":25190,"r":31400,"v":"建達"},{"n":"飛利浦AUT-7063小淨靈+2年份濾心","s":26400,"r":37400,"v":"建達"},{"n":"2分活鉻3通","s":61,"r":99,"v":"彰聖"},{"n":"2分減壓閥（普家康）","s":95,"r":1000,"v":"彰聖"},{"n":"2分矽膠管(紅)","s":252,"r":600,"v":"彰聖"},{"n":"2分管150米（1梱）","s":690,"r":900,"v":"彰聖"},{"n":"2分銬克","s":45,"r":50,"v":"彰聖"},{"n":"2分銬克+龍頭栓","s":61,"r":150,"v":"彰聖"},{"n":"3分減壓閥（普家康）","s":130,"r":1000,"v":"彰聖"},{"n":"3分管150米（1梱）","s":805,"r":1200,"v":"彰聖"},{"n":"3分銬克","s":45,"r":50,"v":"彰聖"},{"n":"6分6角","s":84,"r":105,"v":"彰聖"},{"n":"單槍龍頭栓","s":42,"r":100,"v":"彰聖"},{"n":"彰聖20吋大胖CTO","s":380,"r":520,"v":"彰聖"},{"n":"彰聖CTO","s":42,"r":70,"v":"彰聖"},{"n":"彰聖小T","s":53,"r":250,"v":"彰聖"},{"n":"雙切開關","s":105,"r":200,"v":"彰聖"},{"n":"愛科 JH-R2000-18公升軟水機（標價54800）","s":25300,"r":43200,"v":"愛科"},{"n":"愛科 RO-600g","s":6500,"r":10300,"v":"愛科"},{"n":"愛科 傳家寶濾芯030","s":2890,"r":4500,"v":"愛科"},{"n":"CDA含龍頭","s":7000,"r":0,"v":"普家康"},{"n":"CDA無龍頭","s":6700,"r":0,"v":"普家康"},{"n":"CDA第一道濾心","s":816,"r":1680,"v":"普家康"},{"n":"CDA第二道濾心","s":2016,"r":980,"v":"普家康"},{"n":"FG-82","s":390,"r":680,"v":"普家康"},{"n":"FG-92","s":558,"r":0,"v":"普家康"},{"n":"FT-82","s":113,"r":300,"v":"普家康"},{"n":"FT-83","s":154,"r":350,"v":"普家康"},{"n":"FT-84","s":113,"r":350,"v":"普家康"},{"n":"FT-92","s":166,"r":450,"v":"普家康"},{"n":"KT1MPP（FU-S PP1μm細過濾）","s":112,"r":350,"v":"普家康"},{"n":"KT5mPP（FU-S PP5μm初過濾）","s":106,"r":300,"v":"普家康"},{"n":"KTCTO","s":166,"r":400,"v":"普家康"},{"n":"KTGAC","s":138,"r":380,"v":"普家康"},{"n":"普家康 濾芯 FU-T PP1μm 細過濾","s":112,"r":350,"v":"普家康"},{"n":"普家康 變壓器 L型喇叭頭品字插100~240V/36VDC/7A (CLS-1200用)","s":1740,"r":2500,"v":"普家康"},{"n":"普家康 變壓器 雙平插L型(CDA CE-6T用)","s":792,"r":1500,"v":"普家康"},{"n":"普家康 通規濾芯 PP1μm細過濾 10\"","s":24,"r":70,"v":"普家康"},{"n":"普家康 通規濾芯 PP5μm初過濾 10\"","s":23,"r":55,"v":"普家康"},{"n":"普家康 通規濾芯 UDF活性碳 10\"","s":70,"r":150,"v":"普家康"},{"n":"普家康 限流閥廢水比 快速接頭 400cc","s":26,"r":50,"v":"普家康"},{"n":"普家康 限流閥廢水比 快速接頭 550cc","s":26,"r":50,"v":"普家康"},{"n":"普家康 電磁閥 塑膠膈膜式 DC24V","s":84,"r":150,"v":"普家康"},{"n":"普家康 電磁閥 塑膠膈膜式 DC36V","s":114,"r":250,"v":"普家康"},{"n":"普家康 電路板 PJK-027D/DC24V/36V 5A (CLS-1200用)","s":540,"r":1200,"v":"普家康"},{"n":"普家康 馬達 UP-7000 24VDC","s":576,"r":0,"v":"普家康"},{"n":"普家康 馬達 UP-9100 24VDC","s":828,"r":1500,"v":"普家康"},{"n":"普家康 高壓開關 快插式 20-40PSI","s":46,"r":100,"v":"普家康"},{"n":"普家康400G膜","s":862,"r":1800,"v":"普家康"},{"n":"普家康500GRO膜外殼","s":180,"r":450,"v":"普家康"},{"n":"普家康600G膜","s":1080,"r":2990,"v":"普家康"},{"n":"普家康75GRO膜","s":514,"r":0,"v":"普家康"},{"n":"普家康CTO通規","s":55,"r":300,"v":"普家康"},{"n":"普家康低壓開關","s":35,"r":200,"v":"普家康"},{"n":"普家康快拆小T","s":97,"r":350,"v":"普家康"},{"n":"普家康快拆有桶RO機","s":3360,"r":8200,"v":"普家康"},{"n":"普家康落地用RO機","s":3100,"r":7000,"v":"普家康"},{"n":"普家康通規75G膜","s":245,"r":1350,"v":"普家康"},{"n":"Coway AP-0823E 三合一濾網組","s":1051,"r":1390,"v":"格威"},{"n":"Coway AP-1924A 一年份濾網組","s":2253,"r":2980,"v":"格威"},{"n":"Coway AP-1924A 一年份濾網組(過敏加強版)","s":2631,"r":3480,"v":"格威"},{"n":"Coway AP-2023K 一年份濾網組","s":3704,"r":4900,"v":"格威"},{"n":"Coway Noble 4D美學空氣清淨機(AP-2023K)","s":22529,"r":29800,"v":"格威"},{"n":"Coway 捲高效疾風清淨機(AP-1924A)","s":9677,"r":12800,"v":"格威"},{"n":"Coway 靜小眠除臭抗敏清淨機(AP-0823E)","s":3704,"r":4900,"v":"格威"},{"n":"Coway濾淨智控冰溫瞬熱飲水機(CHP-7211N)","s":25834,"r":36800,"v":"格威"},{"n":"Culligan 旗艦櫥下RO瞬熱飲水機(US-202C-TW)","s":32270,"r":49800,"v":"格威"},{"n":"Culligan 櫥下RO瞬熱雙溫飲水機(AVE-T2800)","s":25790,"r":39800,"v":"格威"},{"n":"Culligan 櫥下RO瞬熱飲水機濾芯(US-201C-TW-RO)","s":7063,"r":10900,"v":"格威"},{"n":"NOBLE 智感櫥下瞬冰瞬熱飲水機(CHP-3140N)","s":41980,"r":59800,"v":"格威"},{"n":"OASIS RO 600G 第一年份濾芯組","s":1620,"r":2500,"v":"格威"},{"n":"OASIS RO 600G 第二年份濾芯組","s":4536,"r":7000,"v":"格威"},{"n":"OASIS 五重過濾濾芯組(3入裝)(F-PCURHS-3)","s":673,"r":890,"v":"格威"},{"n":"OASIS 桌上型三溫製冰沁淨飲水機(IF-3ICE01M)","s":11794,"r":16800,"v":"格威"},{"n":"OASIS 桌上型極沁冰溫瞬熱RO一年份濾芯組","s":1931,"r":2980,"v":"格威"},{"n":"OASIS 桌上旗艦觸控氣泡三溫RO飲水機(CT-3FIZZ01O)","s":27940,"r":39800,"v":"格威"},{"n":"OASIS 極沁冰溫瞬熱RO濾淨飲水機(IF-301A)","s":10390,"r":14800,"v":"格威"},{"n":"OASIS 櫥下高效軟水一年份濾芯組","s":3175,"r":4900,"v":"格威"},{"n":"OASIS 淨水器RO 600G(含龍頭)(US-101K)","s":9552,"r":16800,"v":"格威"},{"n":"OASIS 逆滲透膜複合RO濾芯(CT-3FIZZ01O-RO)","s":2579,"r":3980,"v":"格威"},{"n":"美國OASIS 櫥下極奢氣溑三溫UVC飲水機(LUXES-FIZZ-401)-主機不含濾心","s":35510,"r":54800,"v":"格威"},{"n":"美國OASIS 櫥下極奢氣泡三溫UVC飲水機(LUXES-FIZZ-401)-搭配OASIS RO600G","s":45062,"r":64800,"v":"格威"},{"n":"美國OASIS 櫥下極奢氣泡三溫UVC飲水機(LUXES-FIZZ-401)-搭配高效軟水三道","s":38236,"r":54800,"v":"格威"},{"n":"美國OASIS 櫥下節能二溫UVC飲水機(LUXES-HOT-201)-主機不含濾心","s":16578,"r":29800,"v":"格威"},{"n":"美國OASIS 櫥下節能二溫UVC飲水機(LUXES-HOT-201)-搭配OASIS RO600G","s":26130,"r":39800,"v":"格威"},{"n":"美國OASIS 櫥下節能二溫UVC飲水機(LUXES-HOT-201)-搭配高效軟水三道","s":19304,"r":29800,"v":"格威"},{"n":"美國OASIS 櫥下輕奢三溫UVC飲水機(LUXES-COLD-301)-主機不含濾心","s":24791,"r":39800,"v":"格威"},{"n":"美國OASIS 櫥下輕奢三溫UVC飲水機(LUXES-COLD-301)-搭配OASIS RO600G","s":34343,"r":49800,"v":"格威"},{"n":"美國OASIS 櫥下輕奢三溫UVC飲水機(LUXES-COLD-301)-搭配高效軟水三道","s":27517,"r":39800,"v":"格威"},{"n":"EHF6220","s":1688,"r":1980,"v":"櫻花"},{"n":"F0110","s":350,"r":441,"v":"櫻花"},{"n":"F0130","s":470,"r":801,"v":"櫻花"},{"n":"75G RO膜（美國陶式）FILMTEC","s":696,"r":1500,"v":"漢岱"},{"n":"50g ro膜（菁泉）","s":190,"r":800,"v":"菁泉"},{"n":"10.7加侖壓力桶","s":1725,"r":2000,"v":"葦翔"},{"n":"1042直接頭","s":4,"r":10,"v":"葦翔"},{"n":"10吋2道吊片","s":58,"r":100,"v":"葦翔"},{"n":"10吋墊圈","s":7,"r":20,"v":"葦翔"},{"n":"10英吋 PP 濾芯1m（clean pure）","s":20,"r":30,"v":"葦翔"},{"n":"10英吋 PP 濾芯5m（clean pure）","s":19,"r":26,"v":"葦翔"},{"n":"10英吋 UDF (顆粒活性碳)","s":44,"r":70,"v":"葦翔"},{"n":"20吋cto","s":207,"r":350,"v":"葦翔"},{"n":"20吋pp5m","s":39,"r":50,"v":"葦翔"},{"n":"2分YT10白白濾殼SQ","s":125,"r":160,"v":"葦翔"},{"n":"2分YT10白透濾殼SQ","s":145,"r":200,"v":"葦翔"},{"n":"2分快接雙向沖洗球閥","s":45,"r":50,"v":"葦翔"},{"n":"3分快接雙向沖洗球閥","s":50,"r":50,"v":"葦翔"},{"n":"4042.2分彎頭L型","s":6,"r":20,"v":"葦翔"},{"n":"RO-132 壓力桶 (3.2加侖)","s":570,"r":685,"v":"葦翔"},{"n":"RO膜外殼墊圈","s":6,"r":20,"v":"葦翔"},{"n":"低壓(黑)內牙","s":35,"r":40,"v":"葦翔"},{"n":"壓力桶5.5G白2分NSF PA","s":665,"r":900,"v":"葦翔"},{"n":"大胖 10英吋 CTO 濾芯（clean pure）","s":288,"r":250,"v":"葦翔"},{"n":"大胖 10英吋 PP 濾芯5m（clean pure）","s":75,"r":125,"v":"葦翔"},{"n":"大胖 20英吋 CTO 濾芯（clean pure）","s":506,"r":580,"v":"葦翔"},{"n":"大胖 20英吋 PP 濾芯5m（clean pure）","s":150,"r":170,"v":"葦翔"},{"n":"大胖專用扳手","s":32,"r":60,"v":"葦翔"},{"n":"304中彎鵝頸","s":550,"r":1000,"v":"豪星"},{"n":"上正板組合","s":840,"r":1400,"v":"豪星"},{"n":"不銹鋼出水鉤管","s":720,"r":1200,"v":"豪星"},{"n":"不銹鋼單溫鵝頸龍頭","s":1656,"r":2760,"v":"豪星"},{"n":"不銹鋼雙溫龍頭","s":4560,"r":7000,"v":"豪星"},{"n":"出水座632","s":144,"r":240,"v":"豪星"},{"n":"安全龍頭上蓋組合","s":288,"r":480,"v":"豪星"},{"n":"按鍵組合","s":432,"r":720,"v":"豪星"},{"n":"接水盒蓋","s":72,"r":120,"v":"豪星"},{"n":"水位橡皮-S","s":18,"r":30,"v":"豪星"},{"n":"溫度保險絲","s":216,"r":360,"v":"豪星"},{"n":"熱敏電阻","s":216,"r":360,"v":"豪星"},{"n":"熱敏電阻組合","s":216,"r":360,"v":"豪星"},{"n":"豪星 80G RO膜","s":400,"r":300,"v":"豪星"},{"n":"豪星 H1型冰溫熱飲水機白色含618RO機","s":22950,"r":42000,"v":"豪星"},{"n":"豪星 H1型冰溫熱飲水機黑色含618RO機","s":22950,"r":42000,"v":"豪星"},{"n":"豪星 HM-1687(通規)","s":13800,"r":20000,"v":"豪星"},{"n":"豪星 HM-1687(鎖規)","s":13800,"r":20000,"v":"豪星"},{"n":"豪星 HM-1688（通規）","s":11950,"r":18000,"v":"豪星"},{"n":"豪星 HM-1688（鎖規）","s":11950,"r":18000,"v":"豪星"},{"n":"豪星 HM-190(灰)","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-190(白)","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-190(藍）","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-192型冷熱飲水機-桌上型-灰","s":9750,"r":15800,"v":"豪星"},{"n":"豪星 HM-192型冷熱飲水機-桌上型-白","s":9750,"r":15800,"v":"豪星"},{"n":"豪星 HM-192型冷熱飲水機-桌上型-藍","s":9750,"r":15800,"v":"豪星"},{"n":"豪星 HM-193型冰冷熱飲水機-桌上型-灰","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-193型冰冷熱飲水機-桌上型-白","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-193型冰冷熱飲水機-桌上型-藍","s":11750,"r":17800,"v":"豪星"},{"n":"豪星 HM-2681型冰溫熱飲水機","s":13050,"r":17800,"v":"豪星"},{"n":"豪星 HM-290型冰冷熱飲水機-灰","s":12950,"r":19800,"v":"豪星"},{"n":"豪星 HM-290型冰冷熱飲水機-白","s":12950,"r":19800,"v":"豪星"},{"n":"豪星 HM-290型冰冷熱飲水機-藍","s":12950,"r":19800,"v":"豪星"},{"n":"豪星 HM-292型冷熱飲水機-灰","s":10950,"r":17800,"v":"豪星"},{"n":"豪星 HM-292型冷熱飲水機-白","s":10950,"r":17800,"v":"豪星"},{"n":"豪星 HM-518型廚下加熱器(調熱控)","s":3850,"r":12800,"v":"豪星"},{"n":"豪星 HM-538型廚下加熱器(無壓式)","s":3900,"r":13800,"v":"豪星"},{"n":"豪星 HS-170廚下型冷熱飲水機-玫瑰金","s":4900,"r":17820,"v":"豪星"},{"n":"豪星 HS-9002型溫熱殺菌型飲水機(灰色)","s":14150,"r":22000,"v":"豪星"},{"n":"豪星 HS-9002型溫熱殺菌型飲水機(白色)","s":14150,"r":22000,"v":"豪星"},{"n":"豪星 HS-9002型溫熱殺菌型飲水機(藍色)","s":14150,"r":22000,"v":"豪星"},{"n":"豪星 HS-A990FR冰溫熱殺菌型飲水機(灰色)","s":16350,"r":29000,"v":"豪星"},{"n":"豪星 HS-A990FR冰溫熱殺菌型飲水機(白色)","s":16350,"r":29000,"v":"豪星"},{"n":"豪星 HS-A990FR冰溫熱殺菌型飲水機(藍色)","s":16350,"r":29000,"v":"豪星"},{"n":"豪星 Hs-9001(通規)（灰色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 Hs-9001(通規)（白色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 Hs-9001(通規)（藍色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 Hs-9001(鎖規)（灰色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 Hs-9001(鎖規)（白色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 Hs-9001(鎖規)（藍色）","s":16150,"r":26000,"v":"豪星"},{"n":"豪星 S100","s":115,"r":750,"v":"豪星"},{"n":"豪星 S101","s":168,"r":600,"v":"豪星"},{"n":"豪星 S102","s":125,"r":500,"v":"豪星"},{"n":"豪星 小T33","s":66,"r":350,"v":"豪星"},{"n":"豪星2681的電熱管","s":365,"r":800,"v":"豪星"},{"n":"過濾蓋(右進左出)","s":180,"r":300,"v":"豪星"},{"n":"過濾蓋組合(左進右出)","s":300,"r":500,"v":"豪星"},{"n":"配件包組合","s":540,"r":900,"v":"豪星"},{"n":"限流管","s":180,"r":300,"v":"豪星"},{"n":"電熱管(不銹鋼)","s":576,"r":960,"v":"豪星"},{"n":"面板組合","s":1620,"r":2700,"v":"豪星"},{"n":"風扇膠葉組合","s":240,"r":400,"v":"豪星"},{"n":"馬達組合","s":960,"r":1600,"v":"豪星"},{"n":"龍頭上蓋(白)組合","s":288,"r":480,"v":"豪星"},{"n":"龍頭上蓋(紅)組合","s":288,"r":480,"v":"豪星"},{"n":"龍頭上蓋(藍)組合","s":288,"r":480,"v":"豪星"},{"n":"龍頭墊片(2502/2302)","s":180,"r":300,"v":"豪星"},{"n":"龍頭安裝配件包","s":72,"r":120,"v":"豪星"},{"n":"龍頭整支(紅-純白)","s":576,"r":1000,"v":"豪星"},{"n":"龍頭板片組合","s":144,"r":240,"v":"豪星"},{"n":"龍頭組合(藍)","s":576,"r":1000,"v":"豪星"}];
+
+const vendors = [...new Set(P.map(p=>p.v))].sort();
+const filtersEl = document.getElementById("filters");
+const listEl    = document.getElementById("list");
+const statsEl   = document.getElementById("stats");
+const searchEl  = document.getElementById("search");
+
+let activeVendor = "";
+
+// 用 <button> 而不是 <span>，觸控更穩
+let chipHtml = '<button type="button" class="chip active" data-v="">全部</button>';
+vendors.forEach(v => {
+  chipHtml += `<button type="button" class="chip" data-v="${v}">${v} (${P.filter(p=>p.v===v).length})</button>`;
+});
+filtersEl.innerHTML = chipHtml;
+
+filtersEl.addEventListener("click", e => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  btn.classList.add("active");
+  activeVendor = btn.dataset.v;
+  // 把點到的 chip 滑到可見範圍
+  btn.scrollIntoView({behavior:"smooth", inline:"center", block:"nearest"});
+  render();
+});
+
+searchEl.addEventListener("input", () => render());
+
+function render() {
+  const q = searchEl.value.trim().toLowerCase();
+  let filtered = P;
+  if (activeVendor) filtered = filtered.filter(p => p.v === activeVendor);
+  if (q) {
+    const terms = q.split(/\s+/);
+    filtered = filtered.filter(p => {
+      const text = (p.n + " " + p.v).toLowerCase();
+      return terms.every(t => text.includes(t));
+    });
+  }
+  statsEl.textContent = `顯示 ${filtered.length} / ${P.length} 項商品`;
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>找不到符合的商品<br>試試其他關鍵字</div>';
+    return;
+  }
+
+  let html = "";
+  let lastVendor = "";
+  filtered.forEach(p => {
+    if (!q && p.v !== lastVendor) {
+      lastVendor = p.v;
+      html += `<div class="vendor-header">${p.v}</div>`;
+    }
+    html += `<div class="card">
+      <div class="card-left">
+        <div class="card-name">${p.n}</div>
+        <div class="card-vendor">${p.v}</div>
+      </div>
+      <div class="card-right">
+        <div class="price-label">分店成本</div>
+        <div class="price-store">${p.s.toLocaleString()}</div>
+        <div class="price-label" style="margin-top:4px">終端售價</div>
+        <div class="price-retail">${p.r.toLocaleString()}</div>
+      </div>
+    </div>`;
+  });
+  listEl.innerHTML = html;
+}
+
+render();
+
+// PWA 安裝提示 (Android Chrome)
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+
+// iOS 安裝提示 (一次性)
+const iOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if (iOS && !isStandalone && !sessionStorage.getItem('iosHintShown')) {
+  setTimeout(() => {
+    sessionStorage.setItem('iosHintShown', '1');
+    const banner = document.getElementById('installBanner');
+    banner.innerHTML = '<span>📲 點擊 ⬆️ 分享 → <b>加入主畫面</b> 即可變 App</span>';
+    banner.style.display = 'flex';
+    banner.onclick = () => banner.style.display = 'none';
+  }, 1500);
+}
+</script>
+</body>
+</html>
