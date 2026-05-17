@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>澄軒分店叫貨</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif}
+html,body{height:100%;background:#f0f2f5}
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.header{background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;padding:12px 14px 14px;flex-shrink:0;padding-top:env(safe-area-inset-top, 12px)}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.title{flex:1;font-size:17px;font-weight:700}
+.close{font-size:20px;cursor:pointer;opacity:.85}
+.user-info{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.18);padding:8px 12px;border-radius:8px;font-size:12px}
+.user-info b{font-size:14px}
+
+.search-bar{padding:8px 12px;background:#fff;flex-shrink:0;border-bottom:1px solid #eee}
+.search-bar input{width:100%;padding:9px 14px;border:1px solid #ddd;border-radius:20px;font-size:13px;outline:none;background:#f7f8fa}
+.search-bar input:focus{border-color:#0d9488;background:#fff}
+
+.cat-tabs{display:flex;background:#fff;padding:0 6px;flex-shrink:0;border-bottom:1px solid #eee;gap:4px;overflow-x:auto}
+.cat-tab{padding:8px 12px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-weight:500}
+.cat-tab.active{color:#0d9488;border-bottom-color:#0d9488;font-weight:600}
+
+.scroll-area{flex:1;overflow-y:auto;padding:10px;background:#f0f2f5;-webkit-overflow-scrolling:touch;min-height:0}
+
+.product-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.product-card.in-cart{border:1.5px solid #0d9488}
+.p-row1{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px}
+.p-icon{width:38px;height:38px;border-radius:8px;background:#ccfbf1;color:#0f766e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.p-info{flex:1;min-width:0}
+.p-cx{font-size:10px;color:#0d9488;font-weight:600}
+.p-name{font-size:13px;color:#222;font-weight:500;line-height:1.3;margin-top:1px}
+.p-vendor{font-size:10px;color:#999;margin-top:2px}
+.p-price{display:flex;justify-content:space-between;background:#f7f8fa;border-radius:6px;padding:5px 9px;margin-bottom:6px;font-size:11px}
+.p-price b{color:#444;font-weight:600}
+.p-actions{display:flex;justify-content:flex-end;align-items:center;gap:4px;flex-wrap:wrap}
+.qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #0d9488;background:#fff;color:#0d9488;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.qty-btn.minus{visibility:hidden}
+.product-card.in-cart .qty-btn.minus{visibility:visible}
+.qty-input{width:54px;text-align:center;font-size:15px;font-weight:700;color:#0d9488;border:1.5px solid #0d9488;border-radius:6px;padding:4px 2px;background:#fff;-moz-appearance:textfield}
+.qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-btn.ten,.qty-btn.fifty{width:auto;min-width:34px;padding:0 6px;font-size:11px;border-color:#0d9488;background:#ccfbf1;color:#0f766e;font-weight:700}
+.qty-btn.ten:hover,.qty-btn.fifty:hover{background:#0d9488;color:#fff}
+.product-card:not(.in-cart) .qty-input{display:none}
+.add-btn{padding:5px 12px;border-radius:5px;background:#0d9488;color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.product-card.in-cart .add-btn{background:#15803d;color:#fff;cursor:default;font-size:11px;padding:5px 10px}
+.product-card.in-cart .add-btn::before{content:"✓ 已加入"}
+
+.cart-bar{flex-shrink:0;background:#fff;border-top:1px solid #eee;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.cart-icon{position:relative;font-size:20px}
+.cart-badge{position:absolute;top:-4px;right:-6px;background:#ff4d4f;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
+.cart-text{flex:1;font-size:12px;color:#444}
+.cart-text b{color:#222;font-size:13px}
+.send-btn{padding:9px 18px;background:#0d9488;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer}
+.send-btn:disabled{background:#ccc}
+
+.qty-modal-content{background:#fff;width:100%;max-width:420px;border-radius:18px 18px 0 0;padding:18px 14px;animation:slideUp .25s ease-out}
+.qty-modal-content h3{font-size:15px;color:#222;margin-bottom:10px;text-align:center}
+.qty-display{background:#ccfbf1;border:2px solid #0d9488;border-radius:10px;padding:14px;text-align:center;font-size:32px;font-weight:700;color:#0f766e;margin-bottom:10px;font-family:Menlo,monospace}
+.qty-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}
+.qty-quick button{padding:9px;border-radius:7px;border:1px solid #0d9488;background:#fff;color:#0d9488;font-size:13px;font-weight:600;cursor:pointer}
+.qty-quick button:active{background:#0d9488;color:#fff}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+.numpad button{padding:14px;border-radius:8px;border:1px solid #ddd;background:#f7f8fa;font-size:18px;font-weight:600;cursor:pointer;color:#222}
+.numpad button:active{background:#0d9488;color:#fff}
+.qty-modal-actions{display:flex;gap:8px;margin-top:10px}
+.qty-modal-actions button{flex:1;padding:11px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:50;touch-action:none}
+.modal-bg .modal,.modal-bg .qty-modal-content{touch-action:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;width:100%;max-width:520px;max-height:88%;border-radius:18px 18px 0 0;padding:16px;overflow-y:auto;animation:slideUp .25s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:16px;margin-bottom:12px;color:#222}
+.modal .field{margin-bottom:10px}
+.modal label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.modal input,.modal textarea,.modal select{width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit}
+.modal textarea{resize:vertical;min-height:50px}
+.cart-list{background:#f7f8fa;border-radius:6px;padding:9px;font-size:11px;line-height:1.7;max-height:200px;overflow-y:auto}
+.confirm-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px;gap:8px}
+.confirm-item:last-child{border-bottom:none}
+.ci-info{flex:1;min-width:0;color:#222}
+.ci-info b{color:#0d9488}
+.ci-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ci-btn{width:24px;height:24px;border-radius:50%;border:1.5px solid #0d9488;background:#fff;color:#0d9488;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.ci-btn:active{background:#0d9488;color:#fff}
+.ci-qty{min-width:32px;text-align:center;font-size:13px;font-weight:700;color:#0d9488}
+.ci-del{width:24px;height:24px;border-radius:50%;border:1.5px solid #ff4d4f;background:#fff;color:#ff4d4f;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0;margin-left:4px}
+.ci-del:active{background:#ff4d4f;color:#fff}
+.cart-list b{color:#0d9488}
+.modal-actions{display:flex;gap:6px;margin-top:12px}
+.modal-actions button{flex:1;padding:9px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-cancel{background:#eee;color:#666}
+.btn-confirm{background:#0d9488;color:#fff}
+
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#fff;color:#0d9488;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:13px;font-weight:600;z-index:100;display:none;border:1.5px solid #0d9488;max-width:90%}
+.toast.show{display:block}
+
+.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:10px}
+.loading.hide{display:none}
+.spinner{width:32px;height:32px;border:3px solid #f0f2f5;border-top-color:#0d9488;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.warn-banner{background:#fff7e6;color:#92400e;padding:10px 14px;font-size:12px;border-bottom:1px solid #fef3c7;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div style="color:#666;font-size:13px">LIFF 載入中...</div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <span class="title">📦 澄軒分店叫貨</span>
+    <span class="close" onclick="liff.closeWindow()">✕</span>
+  </div>
+  <div class="user-info">
+    <span id="store-label">🏬 偵測分店中…</span>
+    <span id="user-greeting">👤 載入中…</span>
+  </div>
+</div>
+
+<div class="warn-banner" id="warn-banner" style="display:none"></div>
+
+<div class="view active" id="view-order">
+  <div class="search-bar"><input id="search" type="text" placeholder="🔍 搜尋商品 / cx 編號"></div>
+  <div class="cat-tabs">
+    <div class="cat-tab active" data-cat="hot">🔥 常買</div>
+    <div class="cat-tab" data-cat="all">全部</div>
+    <div class="cat-tab" data-cat="v:賀眾">賀眾</div>
+    <div class="cat-tab" data-cat="v:豪星">豪星</div>
+    <div class="cat-tab" data-cat="v:櫻花">櫻花</div>
+    <div class="cat-tab" data-cat="v:普家康">普家康</div>
+    <div class="cat-tab" data-cat="v:淨工坊">淨工坊</div>
+    <div class="cat-tab" data-cat="v:宮黛">宮黛</div>
+    <div class="cat-tab" data-cat="v:格威">格威</div>
+    <div class="cat-tab" data-cat="v:葦翔">葦翔</div>
+    <div class="cat-tab" data-cat="v:奇異">奇異</div>
+    <div class="cat-tab" data-cat="v:彰聖">彰聖</div>
+    <div class="cat-tab" data-cat="v:盛智_3m商用">盛智_3m商用</div>
+    <div class="cat-tab" data-cat="v:家享">家享</div>
+  </div>
+  <div class="scroll-area" id="products"></div>
+  <div class="cart-bar">
+    <div class="cart-icon">🛒<span class="cart-badge" id="cart-count">0</span></div>
+    <div class="cart-text"><span id="cart-text">購物車是空的</span></div>
+    <button class="send-btn" id="send-btn" disabled onclick="openConfirm()">送出</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="qty-modal" onclick="if(event.target===this) closeQtyModal()">
+  <div class="qty-modal-content">
+    <h3 id="qty-modal-title">設定數量</h3>
+    <div class="qty-display"><span id="qty-display-val">0</span></div>
+    <div class="qty-quick">
+      <button onclick="qtyOp('clear')">清除</button>
+      <button onclick="qtyOp(-50)">-50</button>
+      <button onclick="qtyOp(-10)">-10</button>
+      <button onclick="qtyOp(-1)">-1</button>
+    </div>
+    <div class="qty-quick">
+      <button onclick="qtyOp(1)">+1</button>
+      <button onclick="qtyOp(10)">+10</button>
+      <button onclick="qtyOp(50)">+50</button>
+      <button onclick="qtyOp(100)">+100</button>
+    </div>
+    <div class="numpad">
+      <button onclick="qtyDigit(1)">1</button>
+      <button onclick="qtyDigit(2)">2</button>
+      <button onclick="qtyDigit(3)">3</button>
+      <button onclick="qtyDigit(4)">4</button>
+      <button onclick="qtyDigit(5)">5</button>
+      <button onclick="qtyDigit(6)">6</button>
+      <button onclick="qtyDigit(7)">7</button>
+      <button onclick="qtyDigit(8)">8</button>
+      <button onclick="qtyDigit(9)">9</button>
+      <button onclick="qtyOp('back')">⌫</button>
+      <button onclick="qtyDigit(0)">0</button>
+      <button onclick="qtyOp('00')">00</button>
+    </div>
+    <div class="qty-modal-actions">
+      <button class="btn-cancel" onclick="closeQtyModal()">取消</button>
+      <button class="btn-confirm" onclick="commitQty()">✓ 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">確認訂單</h3>
+    <div id="modal-content"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 已記錄</div>
+
+<script>
+// ============= 設定 =============
+// 澄軒分店叫貨 LIFF App ID（2026-05-17 申請）
+const LIFF_ID = "2009990533-zjqQX30P";
+const WEBHOOK_URL = 'https://hook.us2.make.com/88twj3cvqhdm84w4mmjpoejw5j78eg11';
+const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7mnOC5sJvBCwH02Tb1TP6CJJed-8FwDx0Id9UArzQKYk2E5zbg7gA/exec?action=products';
+const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
+const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000;
+
+// 分店 group_id → 分店資料 (從分店座標 sheet 2026-05-17)
+const BRANCH_MAP = {
+  'C74762837d7f7cfe191892008cbd554a5': { name: '台北信義店', short: '信義' },
+  'C1e021e53a15152bdd10173c1e19fc180': { name: '新莊店',     short: '新莊' },
+  'Cbb48434eb30f2032533726094499f751': { name: '桃園店',     short: '桃園' },
+  'C3e2898f03d6cd38b377a1c531c5f2139': { name: '西屯店',     short: '西屯' },
+  'C6fe1a185ee49446104b177bf963fcba4': { name: '沙鹿店',     short: '沙鹿' },
+  'C39215553103d7d4aa715c7ab4e4eda8f': { name: '台中東區',   short: '中東區' },
+  'C9a7fe9b9b73b0796c16518bbd8dffeb5': { name: '員林店',     short: '員林' },
+  'Cf85932fdeb85322b8125c097a9dbcf4d': { name: '嘉義店',     short: '嘉義' },
+  'C838e7f275b329c32036bb2665c716622': { name: '鳳山店',     short: '鳳山' },
+  'Caf25eb0528c9f66eb8935550b5742453': { name: '楠梓店',     short: '楠梓' },
+  'C6fd258af09770ce3654ee25e331acd4e': { name: '南屯店',     short: '南屯' },
+  'C142d6fa988da0f83d5b9c23a12c1d424': { name: '潭子總倉店', short: '潭子總' },
+  'C022f267da10f09ad27ca69283e57056c': { name: '洪長振店',   short: '洪長振' },
+  'C7510988f5f217f3aa56c91e4a3d3d32a': { name: '小洪測試房', short: '小洪測' },
+  'Ce32c76a0cfa39623d063b1868e462ff0': { name: '陳董測試店', short: '陳董' },
+  'C77233245c7c0f8bb839368209cb1f299': { name: '嘉義測試店', short: '嘉測' }
+};
+
+// 分店常買（先用倉管熱門 SKU；之後依各店實際下單頻率調整）
+const HOT_CX = new Set(["cx476","cx100","cx223","cx7","cx217","cx209","cx208","cx377","cx218","cx8","cx475","cx224","cx226","cx478","cx477","cx128","cx356","cx213","cx40","cx221","cx474","cx207","cx357","cx5","cx232","cx222","cx212"]);
+
+// ============= 全域狀態 =============
+let userProfile = null;
+let currentGroupId = null;
+let currentBranch = null;  // {name, short}
+let products = [];
+const cart = {};
+
+// ============= LIFF init =============
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    userProfile = await liff.getProfile();
+    document.getElementById('user-greeting').innerHTML = `👤 ${userProfile.displayName}`;
+
+    // 偵測 group_id
+    const ctx = liff.getContext();
+    console.log('🎯 LIFF Context:', ctx);
+    if (ctx && ctx.type === 'group' && ctx.groupId) {
+      currentGroupId = ctx.groupId;
+      const b = BRANCH_MAP[currentGroupId];
+      if (b) {
+        currentBranch = b;
+        document.getElementById('store-label').innerHTML = `🏬 ${b.name}`;
+      } else {
+        document.getElementById('store-label').innerHTML = `🏬 未登錄分店`;
+        showWarn(`此 LINE 群（${currentGroupId.slice(0,10)}...）未在分店座標中登錄，請聯絡管理員加入`);
+      }
+    } else {
+      document.getElementById('store-label').innerHTML = `🏬 個人 / 1對1`;
+      showWarn('請在分店 LINE 群組裡開啟此 LIFF 才能正確記錄叫貨');
+    }
+
+    document.getElementById('loading').classList.add('hide');
+  } catch (err) {
+    console.error('LIFF init error:', err);
+    document.getElementById('user-greeting').innerHTML = `⚠️ LIFF 載入失敗`;
+    document.getElementById('loading').classList.add('hide');
+  }
+}
+
+function showWarn(msg) {
+  const el = document.getElementById('warn-banner');
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = 'block';
+}
+
+initLiff();
+
+// ============= 商品載入 =============
+async function loadProducts() {
+  try {
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      const age = Date.now() - obj.time;
+      if (age < PRODUCTS_CACHE_TTL_MS && Array.isArray(obj.products) && obj.products.length > 0) {
+        products = obj.products;
+        console.log('[products] cache hit:', products.length, 'items, age', Math.round(age/1000)+'s');
+        return;
+      }
+    }
+  } catch (e) { console.warn('[products] cache parse fail', e); }
+
+  console.log('[products] fetching fresh from API...');
+  try {
+    const resp = await fetch(PRODUCTS_API, { redirect: 'follow' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.products) throw new Error('bad response');
+    products = data.products.filter(p => p.vendor && p.cost > 0);
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products, time: Date.now() }));
+    console.log('[products] fetched fresh:', products.length, 'items');
+  } catch (err) {
+    console.error('[products] fetch failed:', err);
+    try {
+      const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Array.isArray(obj.products) && obj.products.length > 0) {
+          products = obj.products;
+          if (typeof showToast === 'function') showToast('⚠️ 離線模式：使用快取資料');
+          return;
+        }
+      }
+    } catch (_) {}
+    if (typeof showToast === 'function') showToast('❌ 商品載入失敗：' + err.message);
+    products = [];
+  }
+}
+
+// ============= 渲染商品 =============
+function renderProducts(category='hot', search='') {
+  const list = document.getElementById('products');
+  let html = '';
+  let filtered = products.filter(p => {
+    if (search) {
+      const s = search.toLowerCase();
+      return p.cx.toLowerCase().includes(s) || p.name.toLowerCase().includes(s) || (p.vendor||'').toLowerCase().includes(s);
+    }
+    if (category === 'all') return true;
+    if (category === 'hot') return HOT_CX.has(p.cx);
+    if (category.startsWith('v:')) return p.vendor === category.slice(2);
+    return false;
+  });
+  if (category === 'hot' && !search) {
+    html = `<div style="font-size:11px;color:#888;padding:6px 4px;font-weight:600">🔥 分店常買 (${filtered.length})</div>`;
+  }
+  filtered.forEach(p => {
+    const inCart = cart[p.cx] > 0;
+    html += `
+    <div class="product-card${inCart ? ' in-cart' : ''}">
+      <div class="p-row1">
+        <div class="p-icon">${p.cx}</div>
+        <div class="p-info">
+          <div class="p-cx">${p.cx}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-vendor">📦 ${p.vendor}</div>
+        </div>
+      </div>
+      <div class="p-price">
+        <span>批 <b>$${p.cost.toLocaleString()}</b></span>
+        <span>售 <b style="color:#fa541c">$${p.retail.toLocaleString()}</b></span>
+      </div>
+      <div class="p-actions">
+        <button class="qty-btn minus" onclick="changeQty('${p.cx}',-1)">−</button>
+        <input class="qty-input" type="text" readonly value="${cart[p.cx] || 0}"
+               onclick="openQtyModal('${p.cx}')"
+               ${inCart ? '' : 'style="display:none"'} />
+        <button class="qty-btn plus" onclick="changeQty('${p.cx}',1)" ${inCart ? '' : 'style="display:none"'}>+</button>
+        <button class="qty-btn ten" onclick="changeQty('${p.cx}',10)" ${inCart ? '' : 'style="display:none"'} title="+10">+10</button>
+        <button class="qty-btn fifty" onclick="changeQty('${p.cx}',50)" ${inCart ? '' : 'style="display:none"'} title="+50">+50</button>
+        <button class="add-btn" onclick="${inCart ? '' : `changeQty(\'${p.cx}\',1)`}">${inCart ? '' : '加入'}</button>
+      </div>
+    </div>`;
+  });
+  if (filtered.length === 0) {
+    html += '<div style="text-align:center;color:#999;padding:40px;font-size:13px">😅 找不到商品</div>';
+  }
+  list.innerHTML = html;
+}
+
+function setQty(cx, value) {
+  if (value <= 0) delete cart[cx];
+  else cart[cx] = value;
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+// ============= 數字鍵盤 =============
+let qtyModalCx = null;
+let qtyModalValue = 0;
+
+function openQtyModal(cx) {
+  qtyModalCx = cx;
+  qtyModalValue = cart[cx] || 0;
+  const p = products.find(x => x.cx === cx);
+  document.getElementById('qty-modal-title').textContent = `${cx} ${p ? p.name.slice(0,18) : ''}`;
+  updateQtyDisplay();
+  document.getElementById('qty-modal').classList.add('show');
+}
+
+function closeQtyModal() {
+  document.getElementById('qty-modal').classList.remove('show');
+  document.getElementById('qty-modal').style.cssText = '';
+  qtyModalCx = null;
+  document.body.style.overflow = '';
+}
+
+function updateQtyDisplay() {
+  document.getElementById('qty-display-val').textContent = qtyModalValue;
+}
+
+function qtyDigit(d) {
+  qtyModalValue = qtyModalValue * 10 + d;
+  if (qtyModalValue > 99999) qtyModalValue = 99999;
+  updateQtyDisplay();
+}
+
+function qtyOp(op) {
+  if (op === 'clear') qtyModalValue = 0;
+  else if (op === 'back') qtyModalValue = Math.floor(qtyModalValue / 10);
+  else if (op === '00') qtyModalValue = qtyModalValue * 100;
+  else qtyModalValue = Math.max(0, qtyModalValue + op);
+  if (qtyModalValue > 99999) qtyModalValue = 99999;
+  updateQtyDisplay();
+}
+
+function commitQty() {
+  if (qtyModalCx) setQty(qtyModalCx, qtyModalValue);
+  closeQtyModal();
+}
+
+function changeQty(cx, delta) {
+  cart[cx] = (cart[cx] || 0) + delta;
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+function updateCart() {
+  const items = Object.entries(cart);
+  const count = items.reduce((s, [, q]) => s + q, 0);
+  const totalCost = items.reduce((s, [cx, q]) => {
+    const p = products.find(x => x.cx === cx);
+    return s + (p ? p.cost : 0) * q;
+  }, 0);
+  document.getElementById('cart-count').textContent = count;
+  document.getElementById('cart-text').innerHTML = count > 0
+    ? `<b>${count}</b> 件 · 批 $<b>${totalCost.toLocaleString()}</b>`
+    : '購物車是空的';
+  document.getElementById('send-btn').disabled = count === 0;
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, e.target.value);
+});
+document.querySelectorAll('.cat-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    renderProducts(t.dataset.cat, document.getElementById('search').value);
+  });
+});
+
+// ============= 確認 / 送出 =============
+function openConfirm() {
+  const items = Object.entries(cart).map(([cx, qty]) => {
+    const p = products.find(x => x.cx === cx);
+    return `<div class="confirm-item">
+      <span class="ci-info"><b>${cx}</b> ${p.name.slice(0, 18)}${p.name.length > 18 ? '…' : ''}</span>
+      <span class="ci-ctrl">
+        <button class="ci-btn" onclick="confirmAdjust('${cx}',-1)">−</button>
+        <span class="ci-qty">${qty}</span>
+        <button class="ci-btn" onclick="confirmAdjust('${cx}',1)">+</button>
+        <button class="ci-del" onclick="confirmRemove('${cx}')">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+
+  // 若沒偵測到分店、給 dropdown override
+  let storeField;
+  if (currentBranch) {
+    storeField = `<div class="field"><label>叫貨分店</label><input value="🏬 ${currentBranch.name}" readonly style="background:#f7f8fa"></div>`;
+  } else {
+    const opts = Object.entries(BRANCH_MAP).map(([gid, b]) => `<option value="${gid}">${b.name}</option>`).join('');
+    storeField = `<div class="field"><label>叫貨分店 (請選擇)</label><select id="store-select"><option value="">— 請選擇 —</option>${opts}</select></div>`;
+  }
+
+  document.getElementById('modal-title').textContent = '確認叫貨';
+  document.getElementById('modal-content').innerHTML = `
+    ${storeField}
+    <div class="field"><label>備註</label><textarea id="note" placeholder="例：急件、客戶指寄..."></textarea></div>
+    <div class="field"><label>本次叫貨品項</label><div class="cart-list">${items}</div></div>
+  `;
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal()">返回</button>
+    <button class="btn-confirm" onclick="submitOrder()">✓ 送出</button>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function confirmAdjust(cx, delta) {
+  cart[cx] = (cart[cx]||0) + delta;
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  if (Object.keys(cart).length === 0) {
+    closeModal();
+    showToast('購物車清空');
+    renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+  } else {
+    openConfirm();
+  }
+}
+
+function confirmRemove(cx) {
+  delete cart[cx];
+  updateCart();
+  if (Object.keys(cart).length === 0) {
+    closeModal();
+    showToast('購物車清空');
+  } else {
+    openConfirm();
+  }
+  renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+function submitOrder() {
+  let store, groupId, branchShort;
+  if (currentBranch) {
+    store = currentBranch.name;
+    groupId = currentGroupId;
+    branchShort = currentBranch.short;
+  } else {
+    const sel = document.getElementById('store-select');
+    if (!sel || !sel.value) { showToast('⚠️ 請先選擇分店'); return; }
+    groupId = sel.value;
+    const b = BRANCH_MAP[groupId];
+    store = b.name;
+    branchShort = b.short;
+  }
+
+  const note = document.getElementById('note').value;
+  const orderItems = Object.entries(cart).map(([cx, qty]) => {
+    const p = products.find(x => x.cx === cx);
+    return { cx, name: p.name, qty, vendor: p.vendor };
+  });
+  const now = new Date();
+  const orderId = 'ORD-' + branchShort + '-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + now.toTimeString().slice(0, 8).replace(/:/g, '');
+  const payload = {
+    orderId,
+    store,
+    groupId,
+    user: userProfile ? userProfile.displayName : '(unknown)',
+    userId: userProfile ? userProfile.userId : '(unknown)',
+    note,
+    items: orderItems
+  };
+  console.log('🎯 分店叫貨送出:', payload);
+
+  closeModal();
+  showToast(`✅ 叫貨已送出 (${orderId})`);
+
+  fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(r => console.log('Webhook OK', r.status)).catch(e => console.error('Webhook 失敗:', e));
+
+  if (liff.isInClient()) {
+    liff.sendMessages([{
+      type: 'text',
+      text: `🛒 ${store} 叫貨\n🆔 ${orderId}\n${orderItems.map(i => `• ${i.cx} ${i.name} ×${i.qty}`).join('\n')}\n備註: ${note || '無'}`
+    }]).catch(e => console.warn('sendMessages failed:', e));
+  }
+
+  Object.keys(cart).forEach(k => delete cart[k]);
+  updateCart();
+  renderProducts('hot', '');
+  document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+  document.querySelector('.cat-tab[data-cat="hot"]').classList.add('active');
+  document.getElementById('search').value = '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+loadProducts().then(() => renderProducts('hot'));
+updateCart();
+</script>
+</body>
+</html>
