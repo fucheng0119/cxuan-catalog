@@ -132,21 +132,10 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 <div class="view active" id="view-order">
   <div class="search-bar"><input id="search" type="text" placeholder="🔍 搜尋商品 / cx 編號"></div>
-  <div class="cat-tabs">
+  <div class="cat-tabs" id="cat-tabs">
     <div class="cat-tab active" data-cat="hot">🔥 常買</div>
     <div class="cat-tab" data-cat="all">全部</div>
-    <div class="cat-tab" data-cat="v:賀眾">賀眾</div>
-    <div class="cat-tab" data-cat="v:豪星">豪星</div>
-    <div class="cat-tab" data-cat="v:櫻花">櫻花</div>
-    <div class="cat-tab" data-cat="v:普家康">普家康</div>
-    <div class="cat-tab" data-cat="v:淨工坊">淨工坊</div>
-    <div class="cat-tab" data-cat="v:宮黛">宮黛</div>
-    <div class="cat-tab" data-cat="v:格威">格威</div>
-    <div class="cat-tab" data-cat="v:葦翔">葦翔</div>
-    <div class="cat-tab" data-cat="v:奇異">奇異</div>
-    <div class="cat-tab" data-cat="v:彰聖">彰聖</div>
-    <div class="cat-tab" data-cat="v:盛智_3m商用">盛智_3m商用</div>
-    <div class="cat-tab" data-cat="v:家享">家享</div>
+    <!-- 廠商分類 tab 由 renderVendorTabs() 動態注入（依商品數量 desc 排序） -->
   </div>
   <div class="scroll-area" id="products"></div>
   <div class="cart-bar">
@@ -455,13 +444,36 @@ document.getElementById('search').addEventListener('input', e => {
   const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
   renderProducts(activeTab, e.target.value);
 });
-document.querySelectorAll('.cat-tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    renderProducts(t.dataset.cat, document.getElementById('search').value);
-  });
+// 用 event delegation：tab 是動態注入的，每次重新生成都還能 work
+document.getElementById('cat-tabs').addEventListener('click', e => {
+  const t = e.target.closest('.cat-tab');
+  if (!t) return;
+  document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  renderProducts(t.dataset.cat, document.getElementById('search').value);
 });
+
+// ============= 動態 vendor 分類 tab =============
+function renderVendorTabs() {
+  const counts = {};
+  products.forEach(p => {
+    const v = (p.vendor || '').trim();
+    if (!v) return;
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById('cat-tabs');
+  // 清掉舊的 vendor tab（保留 🔥 常買 + 全部）
+  container.querySelectorAll('.cat-tab[data-cat^="v:"]').forEach(el => el.remove());
+  // 注入排序後的 vendor tabs
+  sorted.forEach(([v, n]) => {
+    const el = document.createElement('div');
+    el.className = 'cat-tab';
+    el.dataset.cat = 'v:' + v;
+    el.textContent = `${v} (${n})`;
+    container.appendChild(el);
+  });
+}
 
 // ============= 確認 / 送出 =============
 function openConfirm() {
@@ -591,7 +603,7 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 4000);
 }
 
-loadProducts().then(() => renderProducts('hot'));
+loadProducts().then(() => { renderVendorTabs(); renderProducts('hot'); });
 updateCart();
 </script>
 </body>
