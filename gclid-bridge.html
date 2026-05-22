@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cxuan</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+body{margin:0;padding:0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;background:#f5f7fa;color:#333}
+.box{text-align:center;padding:24px}
+.spinner{width:48px;height:48px;border:4px solid #e0e7ee;border-top-color:#1FA8B5;border-radius:50%;animation:s 1s linear infinite;margin:0 auto 16px}
+@keyframes s{to{transform:rotate(360deg)}}
+.msg{font-size:14px;color:#666}
+.err{color:#d93025;font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="box">
+<div class="spinner"></div>
+<div class="msg">正在為您開啟 LINE…</div>
+<div id="err" class="err"></div>
+</div>
+<script>
+(function(){
+  // ⚠️ 5/27 填入: LIFF ID（LINE Developer Console 建 LIFF app 後取得）
+  var LIFF_ID = '__LIFF_ID_PLACEHOLDER__';
+  // ⚠️ 5/27 填入: Make webhook URL（建 scenario 後取得）
+  var MAKE_WEBHOOK = '__MAKE_WEBHOOK_PLACEHOLDER__';
+  // LINE OA basic ID（cxuan 客戶 OA）
+  var OA_ID = '@260ujymt';
+
+  var errBox = document.getElementById('err');
+  function showErr(msg){ errBox.textContent = msg; }
+
+  // Get query params
+  var params = new URLSearchParams(location.search);
+  var gclid = params.get('gclid') || params.get('gbraid') || params.get('wbraid') || '';
+  var gad_source = params.get('gad_source') || '';
+  var gad_campaignid = params.get('gad_campaignid') || '';
+
+  liff.init({ liffId: LIFF_ID })
+    .then(function(){
+      // 拿 LINE userId via LIFF SDK
+      if (!liff.isLoggedIn()) {
+        // 強制登入（在 LINE app 內通常自動 ready；外部 browser 才需要 redirect 登入）
+        liff.login();
+        return;
+      }
+      return liff.getProfile();
+    })
+    .then(function(profile){
+      if (!profile) return;
+      // POST 到 Make webhook（fire-and-forget，不等 response 加速 redirect）
+      var payload = {
+        lineUserId: profile.userId,
+        lineDisplayName: profile.displayName || '',
+        gclid: gclid,
+        gad_source: gad_source,
+        gad_campaignid: gad_campaignid,
+        capturedAt: new Date().toISOString(),
+        source: 'liff_gclid_bridge_v1',
+        referrer: document.referrer || ''
+      };
+      // 用 sendBeacon 確保 page 關閉前 POST 送出
+      try {
+        var blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+        navigator.sendBeacon(MAKE_WEBHOOK, blob);
+      } catch(e) {
+        // fallback: fetch
+        fetch(MAKE_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(function(){});
+      }
+      // Redirect to LINE OA chat（直接走 LINE app 加好友 / 開啟對話）
+      setTimeout(function(){
+        if (liff.isInClient()) {
+          // 在 LINE app 內 → 跳到 OA chat
+          liff.openWindow({
+            url: 'https://line.me/R/ti/p/' + OA_ID,
+            external: false
+          });
+          liff.closeWindow();
+        } else {
+          // 外部 browser → 用 URL scheme redirect
+          location.href = 'https://line.me/R/ti/p/' + OA_ID;
+        }
+      }, 400);
+    })
+    .catch(function(err){
+      console.error('LIFF init/profile error:', err);
+      showErr('開啟失敗，請直接搜尋 LINE @' + OA_ID.replace('@',''));
+      // 即使失敗、3 秒後仍 redirect 客戶到 LINE
+      setTimeout(function(){
+        location.href = 'https://line.me/R/ti/p/' + OA_ID;
+      }, 3000);
+    });
+})();
+</script>
+</body>
+</html>
