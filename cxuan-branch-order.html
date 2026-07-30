@@ -597,17 +597,13 @@ async function submitOrder() {
     console.log('Webhook 回應', r.status);
   } catch (e) { console.error('Webhook 失敗:', e); }
   submitting = false;
-  if (!ok) {
-    if (btn) { btn.disabled = false; btn.textContent = '✓ 送出'; }
-    showToast('❌ 送出失敗，這張單「沒有」送出去！請檢查網路後再按一次送出', 8000);
-    return;  // 購物車與備註保留、視窗不關，直接重按即可
-  }
-  const ackSt = ack && ack.status;
+  const ackSt = ok ? (ack && ack.status) : null;
   if (ackSt !== 'ok' && ackSt !== 'duplicate' && ackSt !== 'held') {
-    // 2xx 但非已知 ACK（純文字 Accepted／未知 JSON）＝狀態未確認，⛔不得當成功
+    // 網路失敗／逾時／HTTP非2xx／純文字 Accepted／未知 JSON —— 一律「送出狀態未確認」：
+    // POST 可能已被後端處理、只是 ACK 沒回到手機，⛔不得斷言「沒送出」、也⛔不得當成功
     if (btn) { btn.disabled = false; btn.textContent = '✓ 送出'; }
-    showToast('⚠️ 狀態未確認：這張單可能已送出、也可能沒有。請稍候 1 分鐘看群組有沒有訂單卡；沒有的話再按一次送出（系統會自動擋下重複）', 9000);
-    return;  // 購物車保留、沿用同一單號重按
+    showToast('⚠️ 送出狀態未確認：這張單可能已送出、也可能沒有。請稍候約 1 分鐘看群組有沒有訂單卡——沒有的話再按一次送出（系統會自動擋下重複）；有的話就不用再按', 10000);
+    return;  // 購物車與備註保留、沿用同一單號重按
   }
   pendingOrderId = null;
 
