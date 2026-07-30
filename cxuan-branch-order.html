@@ -581,10 +581,10 @@ async function submitOrder() {
   submitting = true;
   const btn = document.querySelector('#modal-actions .btn-confirm');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 送出中…'; }
-  let ok = false;
+  let ok = false, ack = null;
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const timer = setTimeout(() => ctrl.abort(), 25000);
     const r = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -593,6 +593,7 @@ async function submitOrder() {
     });
     clearTimeout(timer);
     ok = r.ok;
+    try { ack = await r.json(); } catch (e2) {}
     console.log('Webhook 回應', r.status);
   } catch (e) { console.error('Webhook 失敗:', e); }
   submitting = false;
@@ -604,7 +605,10 @@ async function submitOrder() {
   pendingOrderId = null;
 
   closeModal();
-  showToast(`✅ 叫貨已送出 (${orderId})`);
+  const ackSt = ack && ack.status;
+  if (ackSt === 'duplicate') showToast(`✅ 這張單剛才已成功送出，系統已擋下重複 (${orderId})`, 6000);
+  else if (ackSt === 'held') showToast('⚠️ 已收單，但商品缺出貨目的地——倉管與老闆已收到警示、會人工處理', 8000);
+  else showToast(`✅ 叫貨已送出 (${orderId})`);
 
   if (liff.isInClient()) {
     liff.sendMessages([{
