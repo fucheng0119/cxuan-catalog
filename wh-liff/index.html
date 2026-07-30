@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>澄軒倉管</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif}
+html,body{height:100%;background:#f0f2f5}
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.header{background:linear-gradient(135deg,#854d0e,#a16207);color:#fff;padding:12px 14px 14px;flex-shrink:0;padding-top:env(safe-area-inset-top, 12px)}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.title{flex:1;font-size:17px;font-weight:700}
+.close{font-size:20px;cursor:pointer;opacity:.85}
+.user-info{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.18);padding:8px 12px;border-radius:8px;font-size:12px}
+.user-info b{font-size:14px}
+
+.search-bar{padding:8px 12px;background:#fff;flex-shrink:0;border-bottom:1px solid #eee}
+.search-bar input{width:100%;padding:9px 14px;border:1px solid #ddd;border-radius:20px;font-size:13px;outline:none;background:#f7f8fa}
+.search-bar input:focus{border-color:#a16207;background:#fff}
+
+.cat-tabs{display:flex;background:#fff;padding:0 6px;flex-shrink:0;border-bottom:1px solid #eee;gap:4px;overflow-x:auto}
+.cat-tab{padding:8px 12px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-weight:500}
+.cat-tab.active{color:#a16207;border-bottom-color:#a16207;font-weight:600}
+
+.tabs-bar{flex-shrink:0;display:flex;background:#fff;border-top:1px solid #eee;height:54px}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;color:#999;font-size:10px;position:relative}
+.tab-item.active{color:#a16207}
+.tab-item.active::after{content:"";position:absolute;bottom:0;left:20%;right:20%;height:2px;background:#a16207}
+.tab-item .icon{font-size:20px}
+.tab-item .badge{position:absolute;background:#ff4d4f;color:#fff;font-size:9px;border-radius:8px;padding:0 4px;top:5px;right:18%}
+
+.scroll-area{flex:1;overflow-y:auto;padding:10px;background:#f0f2f5;-webkit-overflow-scrolling:touch;min-height:0}
+
+.view{display:none;flex-direction:column;min-height:0}
+.view.active{display:flex;flex:1;min-height:0}
+
+.product-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.product-card.in-cart{border:1.5px solid #a16207}
+.p-row1{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px}
+.p-icon{width:38px;height:38px;border-radius:8px;background:#fef9c3;color:#854d0e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.p-info{flex:1;min-width:0}
+.p-cx{font-size:10px;color:#a16207;font-weight:600}
+.p-name{font-size:13px;color:#222;font-weight:500;line-height:1.3;margin-top:1px}
+.p-vendor{font-size:10px;color:#999;margin-top:2px}
+.p-price{display:flex;justify-content:space-between;background:#f7f8fa;border-radius:6px;padding:5px 9px;margin-bottom:6px;font-size:11px}
+.p-price b{color:#444;font-weight:600}
+.p-actions{display:flex;justify-content:flex-end;align-items:center;gap:4px;flex-wrap:wrap}
+.qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #a16207;background:#fff;color:#a16207;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.qty-btn.minus{visibility:hidden}
+.product-card.in-cart .qty-btn.minus{visibility:visible}
+.qty-input{width:54px;text-align:center;font-size:15px;font-weight:700;color:#a16207;border:1.5px solid #a16207;border-radius:6px;padding:4px 2px;background:#fff;-moz-appearance:textfield}
+.qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-btn.ten,.qty-btn.fifty{width:auto;min-width:34px;padding:0 6px;font-size:11px;border-color:#a16207;background:#fef9c3;color:#854d0e;font-weight:700}
+.qty-btn.ten:hover,.qty-btn.fifty:hover{background:#a16207;color:#fff}
+.product-card:not(.in-cart) .qty-input{display:none}
+.add-btn{padding:5px 12px;border-radius:5px;background:#a16207;color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.product-card.in-cart .add-btn{background:#15803d;color:#fff;cursor:default;font-size:11px;padding:5px 10px}
+.product-card.in-cart .add-btn::before{content:"✓ 已加入"}
+
+.cart-bar{flex-shrink:0;background:#fff;border-top:1px solid #eee;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.cart-icon{position:relative;font-size:20px}
+.cart-badge{position:absolute;top:-4px;right:-6px;background:#ff4d4f;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
+.cart-text{flex:1;font-size:12px;color:#444}
+.cart-text b{color:#222;font-size:13px}
+.send-btn{padding:9px 18px;background:#a16207;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer}
+.send-btn:disabled{background:#ccc}
+
+.task-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:8px;border-left:4px solid #a16207}
+.task-card.urgent{border-left-color:#ff4d4f}
+.task-card.done{border-left-color:#52c41a;opacity:.75}
+.task-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.task-id{font-size:11px;color:#999;font-family:Menlo,monospace}
+.task-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px}
+.task-status.待入庫{background:#fff7e6;color:#a16207}
+.task-status.待出貨{background:#e0f2fe;color:#0369a1}
+.task-status.已出貨{background:#f6ffed;color:#52c41a}
+.task-vendor{font-size:12px;color:#666;margin-bottom:6px}
+.task-items{font-size:12px;color:#444;line-height:1.7;padding:7px 9px;background:#fafbfc;border-radius:6px;margin-bottom:6px}
+.task-act{display:flex;gap:5px;margin-top:8px}
+.task-act button{flex:1;padding:8px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.btn-primary{background:#a16207;color:#fff}
+.btn-secondary{background:#fff;color:#a16207;border:1px solid #a16207 !important}
+
+.month-card{background:linear-gradient(135deg,#854d0e,#a16207);color:#fff;border-radius:12px;padding:13px;margin-bottom:10px}
+.month-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.stat{background:rgba(255,255,255,.18);border-radius:8px;padding:8px}
+.stat .lbl{font-size:11px;opacity:.85}
+.stat .val{font-size:17px;font-weight:700;margin-top:2px}
+
+.inv-card{background:#fff;border-radius:10px;padding:10px;margin-bottom:7px;border:1px solid #eee}
+.inv-r1{display:flex;gap:8px;align-items:flex-start;margin-bottom:5px}
+.stock-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.s-block{background:#f7f8fa;border-radius:6px;padding:7px;text-align:center}
+.s-block.reserved{background:#fff7e6}
+.s-block.available{background:#f6ffed}
+.s-block.danger{background:#fee2e2}
+.s-lbl{font-size:9px;color:#888}
+.s-val{font-size:14px;font-weight:700;margin-top:2px}
+.s-val.warning{color:#92400e}
+.s-val.danger{color:#b91c1c}
+.s-val.good{color:#15803d}
+
+.qty-modal-content{background:#fff;width:100%;max-width:420px;border-radius:18px 18px 0 0;padding:18px 14px;animation:slideUp .25s ease-out}
+.qty-modal-content h3{font-size:15px;color:#222;margin-bottom:10px;text-align:center}
+.qty-display{background:#fef9c3;border:2px solid #a16207;border-radius:10px;padding:14px;text-align:center;font-size:32px;font-weight:700;color:#854d0e;margin-bottom:10px;font-family:Menlo,monospace}
+.qty-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}
+.qty-quick button{padding:9px;border-radius:7px;border:1px solid #a16207;background:#fff;color:#a16207;font-size:13px;font-weight:600;cursor:pointer}
+.qty-quick button:active{background:#a16207;color:#fff}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+.numpad button{padding:14px;border-radius:8px;border:1px solid #ddd;background:#f7f8fa;font-size:18px;font-weight:600;cursor:pointer;color:#222}
+.numpad button:active{background:#a16207;color:#fff}
+.qty-modal-actions{display:flex;gap:8px;margin-top:10px}
+.qty-modal-actions button{flex:1;padding:11px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:50;touch-action:none}
+.modal-bg .modal,.modal-bg .qty-modal-content{touch-action:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;width:100%;max-width:520px;max-height:88%;border-radius:18px 18px 0 0;padding:16px;overflow-y:auto;animation:slideUp .25s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:16px;margin-bottom:12px;color:#222}
+.modal .field{margin-bottom:10px}
+.modal label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.modal input,.modal textarea{width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit}
+.modal textarea{resize:vertical;min-height:50px}
+.cart-list{background:#f7f8fa;border-radius:6px;padding:9px;font-size:11px;line-height:1.7;max-height:200px;overflow-y:auto}
+.confirm-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px;gap:8px}
+.confirm-item:last-child{border-bottom:none}
+.ci-info{flex:1;min-width:0;color:#222}
+.ci-info b{color:#a16207}
+.ci-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ci-btn{width:24px;height:24px;border-radius:50%;border:1.5px solid #a16207;background:#fff;color:#a16207;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.ci-btn:active{background:#a16207;color:#fff}
+.ci-qty{min-width:32px;text-align:center;font-size:13px;font-weight:700;color:#a16207}
+.ci-del{width:24px;height:24px;border-radius:50%;border:1.5px solid #ff4d4f;background:#fff;color:#ff4d4f;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0;margin-left:4px}
+.ci-del:active{background:#ff4d4f;color:#fff}
+.cart-list b{color:#a16207}
+.modal-actions{display:flex;gap:6px;margin-top:12px}
+.modal-actions button{flex:1;padding:9px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-cancel{background:#eee;color:#666}
+.btn-confirm{background:#a16207;color:#fff}
+
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#fff;color:#a16207;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:13px;font-weight:600;z-index:100;display:none;border:1.5px solid #a16207;max-width:90%}
+.toast.show{display:block}
+
+.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:10px}
+.loading.hide{display:none}
+.spinner{width:32px;height:32px;border:3px solid #f0f2f5;border-top-color:#a16207;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div style="color:#666;font-size:13px">LIFF 載入中...</div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <span class="title">📦 澄軒倉管</span>
+    <span class="close" onclick="liff.closeWindow()">✕</span>
+  </div>
+  <div class="user-info">
+    <span>🏭 中部倉</span>
+    <span id="user-greeting">👤 載入中…</span>
+  </div>
+</div>
+
+<!-- 訂貨 view -->
+<div class="view active" id="view-order">
+  <div class="search-bar"><input id="search" type="text" placeholder="🔍 搜尋商品 / cx 編號"></div>
+  <div class="cat-tabs" id="cat-tabs">
+    <div class="cat-tab active" data-cat="hot">🔥 常買</div>
+    <div class="cat-tab" data-cat="all">全部</div>
+    <!-- 廠商分類 tab 由 renderVendorTabs() 動態注入（依商品數量 desc 排序） -->
+  </div>
+  <div class="scroll-area" id="products"></div>
+  <div class="cart-bar">
+    <div class="cart-icon">🛒<span class="cart-badge" id="cart-count">0</span></div>
+    <div class="cart-text"><span id="cart-text">購物車是空的</span></div>
+    <button class="send-btn" id="send-btn" disabled onclick="openConfirm()">送出</button>
+  </div>
+</div>
+
+<!-- 任務 view -->
+<div class="view" id="view-tasks">
+  <div class="scroll-area" id="tasks-list"></div>
+</div>
+
+<!-- 庫存 view -->
+<div class="view" id="view-inventory">
+  <div class="scroll-area" id="inventory-list"></div>
+</div>
+
+<!-- 歷史 view -->
+<div class="view" id="view-history">
+  <div class="scroll-area" id="history-list"></div>
+</div>
+
+<!-- bottom nav -->
+<div class="tabs-bar">
+  <div class="tab-item active" onclick="switchTab('order')"><span class="icon">🛒</span><span>訂貨</span></div>
+  <div class="tab-item" onclick="switchTab('tasks')"><span class="icon">📦</span><span>任務</span><span class="badge">3</span></div>
+  <div class="tab-item" onclick="switchTab('inventory')"><span class="icon">📊</span><span>庫存</span></div>
+  <div class="tab-item" onclick="switchTab('history')"><span class="icon">📋</span><span>歷史</span></div>
+</div>
+
+<div class="modal-bg" id="qty-modal" onclick="if(event.target===this) closeQtyModal()">
+  <div class="qty-modal-content">
+    <h3 id="qty-modal-title">設定數量</h3>
+    <div class="qty-display"><span id="qty-display-val">0</span></div>
+    <div class="qty-quick">
+      <button onclick="qtyOp('clear')">清除</button>
+      <button onclick="qtyOp(-50)">-50</button>
+      <button onclick="qtyOp(-10)">-10</button>
+      <button onclick="qtyOp(-1)">-1</button>
+    </div>
+    <div class="qty-quick">
+      <button onclick="qtyOp(1)">+1</button>
+      <button onclick="qtyOp(10)">+10</button>
+      <button onclick="qtyOp(50)">+50</button>
+      <button onclick="qtyOp(100)">+100</button>
+    </div>
+    <div class="numpad">
+      <button onclick="qtyDigit(1)">1</button>
+      <button onclick="qtyDigit(2)">2</button>
+      <button onclick="qtyDigit(3)">3</button>
+      <button onclick="qtyDigit(4)">4</button>
+      <button onclick="qtyDigit(5)">5</button>
+      <button onclick="qtyDigit(6)">6</button>
+      <button onclick="qtyDigit(7)">7</button>
+      <button onclick="qtyDigit(8)">8</button>
+      <button onclick="qtyDigit(9)">9</button>
+      <button onclick="qtyOp('back')">⌫</button>
+      <button onclick="qtyDigit(0)">0</button>
+      <button onclick="qtyOp('00')">00</button>
+    </div>
+    <div class="qty-modal-actions">
+      <button class="btn-cancel" onclick="closeQtyModal()">取消</button>
+      <button class="btn-confirm" onclick="commitQty()">✓ 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">確認訂單</h3>
+    <div id="modal-content"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 已記錄</div>
+
+<script>
+const LIFF_ID = "2009990533-AwFHHdvo";
+// 指寄群支援(2026-07-22)：在「潭子業務指寄直通廠商群」開此表單=自動歸潭子帳(訂單號 ORD-指寄-…)；
+// 也可用 ?store= 參數手動覆蓋；其餘情境照舊=中部倉(倉管群零影響)。
+const STORE_BY_GROUP = { 'Cb7c923a5177ebc313074092e03e86169': '潭子總倉店' };
+function resolveStore() {
+  const q = new URLSearchParams(location.search).get('store');
+  if (q) return q;
+  try {
+    const ctx = liff.getContext();
+    if (ctx && ctx.groupId && STORE_BY_GROUP[ctx.groupId]) return STORE_BY_GROUP[ctx.groupId];
+  } catch (e) {}
+  return '中部倉';
+}
+let userProfile = null;
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    userProfile = await liff.getProfile();
+    document.getElementById('user-greeting').innerHTML = `👤 ${userProfile.displayName}`;
+    document.getElementById('loading').classList.add('hide');
+    console.log('🎯 LIFF Profile:', userProfile);
+  } catch (err) {
+    console.error('LIFF init error:', err);
+    document.getElementById('user-greeting').innerHTML = `⚠️ LIFF 載入失敗`;
+    document.getElementById('loading').classList.add('hide');
+  }
+}
+initLiff();
+
+// 商品（cx 短碼 + 真實名 + 廠商 + 進貨價 + 售價）
+// 商品 — dynamic fetch from GAS Web App + localStorage cache 1hr
+let products = [];
+const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7mnOC5sJvBCwH02Tb1TP6CJJed-8FwDx0Id9UArzQKYk2E5zbg7gA/exec?action=products';
+const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
+const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hr
+
+async function loadProducts() {
+  // Try fresh cache first (avoid hitting GAS too often)
+  try {
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      const age = Date.now() - obj.time;
+      if (age < PRODUCTS_CACHE_TTL_MS && Array.isArray(obj.products) && obj.products.length > 0) {
+        products = obj.products;
+        console.log('[products] cache hit:', products.length, 'items, age', Math.round(age/1000)+'s');
+        return;
+      }
+    }
+  } catch (e) { console.warn('[products] cache parse fail', e); }
+
+  // Fetch fresh
+  console.log('[products] fetching fresh from API...');
+  try {
+    const resp = await fetch(PRODUCTS_API, { redirect: 'follow' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.products) throw new Error('bad response: ' + JSON.stringify(data).slice(0,200));
+    // Filter out incomplete rows (no vendor or 0 cost)
+    products = data.products.filter(p => p.vendor && p.cost > 0);
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: products, time: Date.now() }));
+    console.log('[products] fetched fresh:', products.length, 'items (filtered from', data.products.length+')');
+  } catch (err) {
+    console.error('[products] fetch failed:', err);
+    // Fallback to stale cache
+    try {
+      const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Array.isArray(obj.products) && obj.products.length > 0) {
+          products = obj.products;
+          console.warn('[products] using stale cache fallback:', products.length, 'items');
+          if (typeof showToast === 'function') showToast('⚠️ 離線模式：使用快取資料');
+          return;
+        }
+      }
+    } catch (_) {}
+    if (typeof showToast === 'function') showToast('❌ 商品載入失敗：' + err.message);
+    products = [];
+  }
+}
+const HOT_CX = new Set(["cx476", "cx100", "cx223", "cx7", "cx217", "cx209", "cx208", "cx377", "cx218", "cx8", "cx475", "cx224", "cx226", "cx478", "cx477", "cx128", "cx356", "cx213", "cx40", "cx221", "cx474", "cx207", "cx357", "cx5", "cx232", "cx222", "cx212"]);
+
+const cart = {};
+
+// Mock 任務 / 庫存 / 歷史 (省略沒影響訂貨流程)
+const whTasks = [
+  {id:'WH-260507-001', orderId:'ORD-潭子-260507-094521', vendor:'漢岱', store:'潭子店', status:'待入庫', urgent:true,
+   expected:[{cx:'cx475', name:'SR-1410HSS', qty:2}], note:'廠商已批，今下午到'},
+  {id:'WH-260506-002', orderId:'ORD-員林-260506-094512', vendor:'葦翔', store:'員林店', status:'待出貨',
+   expected:[{cx:'cx5', name:'PP 濾芯', qty:10}], note:'已入庫'},
+];
+const inventoryData = [
+  {cx:'cx475', name:'舒沛優SR-1410HSS', vendor:'漢岱', stock:8, reserved:2},
+  {cx:'cx478', name:'舒沛優SR-1410 ACP', vendor:'漢岱', stock:24, reserved:5},
+  {cx:'cx5', name:'10英吋 PP 濾芯', vendor:'葦翔', stock:340, reserved:48},
+];
+
+// ============= 訂貨頁 =============
+function renderProducts(category='hot', search='') {
+  const list = document.getElementById('products');
+  let html = '';
+  let filtered = products.filter(p => {
+    if (search) {
+      const s = search.toLowerCase();
+      return p.cx.toLowerCase().includes(s) || p.name.toLowerCase().includes(s) || (p.vendor||'').toLowerCase().includes(s);
+    }
+    if (category === 'all') return true;
+    if (category === 'hot') return HOT_CX.has(p.cx);
+    if (category.startsWith('v:')) return p.vendor === category.slice(2);
+    return false;
+  });
+  if (category === 'hot' && !search) {
+    html = `<div style="font-size:11px;color:#888;padding:6px 4px;font-weight:600">🔥 倉管常買 (${filtered.length})</div>`;
+  }
+  filtered.forEach(p => {
+    const inCart = cart[p.cx] > 0;
+    html += `
+    <div class="product-card${inCart ? ' in-cart' : ''}">
+      <div class="p-row1">
+        <div class="p-icon">${p.cx}</div>
+        <div class="p-info">
+          <div class="p-cx">${p.cx}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-vendor">📦 ${p.vendor}</div>
+        </div>
+      </div>
+      <div class="p-price">
+        <span>進 <b>$${p.cost.toLocaleString()}</b></span>
+        <span>售 <b style="color:#fa541c">$${p.retail.toLocaleString()}</b></span>
+      </div>
+      <div class="p-actions">
+        <button class="qty-btn minus" onclick="changeQty('${p.cx}',-1)">−</button>
+        <input class="qty-input" type="text" readonly value="${cart[p.cx] || 0}" 
+               onclick="openQtyModal('${p.cx}')" 
+               ${inCart ? '' : 'style="display:none"'} />
+        <button class="qty-btn plus" onclick="changeQty('${p.cx}',1)" ${inCart ? '' : 'style="display:none"'}>+</button>
+        <button class="qty-btn ten" onclick="changeQty('${p.cx}',10)" ${inCart ? '' : 'style="display:none"'} title="+10">+10</button>
+        <button class="qty-btn fifty" onclick="changeQty('${p.cx}',50)" ${inCart ? '' : 'style="display:none"'} title="+50">+50</button>
+        <button class="add-btn" onclick="${inCart ? '' : `changeQty(\'${p.cx}\',1)`}">${inCart ? '' : '加入'}</button>
+      </div>
+    </div>`;
+  });
+  if (filtered.length === 0) {
+    html += '<div style="text-align:center;color:#999;padding:40px;font-size:13px">😅 找不到商品</div>';
+  }
+  list.innerHTML = html;
+}
+
+function setQty(cx, value) {
+  if (value <= 0) delete cart[cx];
+  else cart[cx] = value;
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+// ============= 自製數字鍵盤 (避開 iOS 鍵盤 bug) =============
+let qtyModalCx = null;
+let qtyModalValue = 0;
+
+function openQtyModal(cx) {
+  qtyModalCx = cx;
+  qtyModalValue = cart[cx] || 0;
+  const p = products.find(x => x.cx === cx);
+  document.getElementById('qty-modal-title').textContent = `${cx} ${p ? p.name.slice(0,18) : ''}`;
+  updateQtyDisplay();
+  document.getElementById('qty-modal').classList.add('show');
+}
+
+function closeQtyModal() {
+  document.getElementById('qty-modal').classList.remove('show');
+  // 強制清掉可能殘留的 inline style
+  document.getElementById('qty-modal').style.cssText = '';
+  qtyModalCx = null;
+  // 確保 body 沒被 lock
+  document.body.style.overflow = '';
+}
+
+function updateQtyDisplay() {
+  document.getElementById('qty-display-val').textContent = qtyModalValue;
+}
+
+function qtyDigit(d) {
+  // 把 d 接到 value 後（取代或追加）
+  qtyModalValue = qtyModalValue * 10 + d;
+  if (qtyModalValue > 99999) qtyModalValue = 99999;
+  updateQtyDisplay();
+}
+
+function qtyOp(op) {
+  if (op === 'clear') qtyModalValue = 0;
+  else if (op === 'back') qtyModalValue = Math.floor(qtyModalValue / 10);
+  else if (op === '00') qtyModalValue = qtyModalValue * 100;
+  else qtyModalValue = Math.max(0, qtyModalValue + op);
+  if (qtyModalValue > 99999) qtyModalValue = 99999;
+  updateQtyDisplay();
+}
+
+function commitQty() {
+  if (qtyModalCx) setQty(qtyModalCx, qtyModalValue);
+  closeQtyModal();
+}
+
+function changeQty(cx, delta) {
+  cart[cx] = (cart[cx] || 0) + delta;
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+function updateCart() {
+  const items = Object.entries(cart);
+  const count = items.reduce((s, [, q]) => s + q, 0);
+  const totalCost = items.reduce((s, [cx, q]) => {
+    const p = products.find(x => x.cx === cx);
+    return s + (p ? p.cost : 0) * q;
+  }, 0);
+  document.getElementById('cart-count').textContent = count;
+  document.getElementById('cart-text').innerHTML = count > 0
+    ? `<b>${count}</b> 件 · 進貨 $<b>${totalCost.toLocaleString()}</b>`
+    : '購物車是空的';
+  document.getElementById('send-btn').disabled = count === 0;
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, e.target.value);
+});
+// 用 event delegation：tab 是動態注入的，每次重新生成都還能 work
+document.getElementById('cat-tabs').addEventListener('click', e => {
+  const t = e.target.closest('.cat-tab');
+  if (!t) return;
+  document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  renderProducts(t.dataset.cat, document.getElementById('search').value);
+});
+
+// ============= 動態 vendor 分類 tab =============
+function renderVendorTabs() {
+  const counts = {};
+  products.forEach(p => {
+    const v = (p.vendor || '').trim();
+    if (!v) return;
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById('cat-tabs');
+  // 更新「全部」tab 的計數
+  const allTab = container.querySelector('.cat-tab[data-cat="all"]');
+  if (allTab) allTab.textContent = `全部 (${products.length})`;
+  // 清掉舊的 vendor tab（保留 🔥 常買 + 全部）
+  container.querySelectorAll('.cat-tab[data-cat^="v:"]').forEach(el => el.remove());
+  // 注入排序後的 vendor tabs
+  sorted.forEach(([v, n]) => {
+    const el = document.createElement('div');
+    el.className = 'cat-tab';
+    el.dataset.cat = 'v:' + v;
+    el.textContent = `${v} (${n})`;
+    container.appendChild(el);
+  });
+}
+
+function openConfirm() {
+  const items = Object.entries(cart).map(([cx, qty]) => {
+    const p = products.find(x => x.cx === cx);
+    return `<div class="confirm-item">
+      <span class="ci-info"><b>${cx}</b> ${p.name.slice(0, 18)}${p.name.length > 18 ? '…' : ''}</span>
+      <span class="ci-ctrl">
+        <button class="ci-btn" onclick="confirmAdjust('${cx}',-1)">−</button>
+        <span class="ci-qty">${qty}</span>
+        <button class="ci-btn" onclick="confirmAdjust('${cx}',1)">+</button>
+        <button class="ci-del" onclick="confirmRemove('${cx}')">✕</button>
+      </span>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-title').textContent = '確認訂單';
+  document.getElementById('modal-content').innerHTML = `
+    <div class="field"><label>叫貨單位</label><input value="🏭 中部倉" readonly style="background:#f7f8fa"></div>
+    <div class="field"><label>備註</label><textarea id="note" placeholder="例：急件、客戶指寄..."></textarea></div>
+    <div class="field"><label>本次訂單品項</label><div class="cart-list">${items}</div></div>
+  `;
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal()">返回</button>
+    <button class="btn-confirm" onclick="submitOrder()">✓ 送出</button>
+  `;
+  document.getElementById('modal').classList.add('show');
+}
+
+function confirmAdjust(cx, delta) {
+  cart[cx] = (cart[cx]||0) + delta;
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  // 重 render confirm modal 或 close 如果空
+  if (Object.keys(cart).length === 0) {
+    closeModal();
+    showToast('購物車清空');
+    renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+  } else {
+    openConfirm();
+  }
+}
+
+function confirmRemove(cx) {
+  delete cart[cx];
+  updateCart();
+  if (Object.keys(cart).length === 0) {
+    closeModal();
+    showToast('購物車清空');
+  } else {
+    openConfirm();
+  }
+  renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+let submitting = false, pendingOrderId = null;
+async function submitOrder() {
+  if (submitting) return;
+  const note = document.getElementById('note').value;
+  const orderItems = Object.entries(cart).map(([cx, qty]) => {
+    const p = products.find(x => x.cx === cx);
+    return { cx, name: p.name, qty, vendor: p.vendor };
+  });
+  const store = resolveStore();
+  const orderId = pendingOrderId || ('ORD-' + (store === '中部倉' ? '中部倉' : '指寄') + '-' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + '-' + new Date().toTimeString().slice(0, 8).replace(/:/g, ''));
+  pendingOrderId = orderId;  // 失敗重按沿用同一單號，避免重複成單
+  const payload = {
+    orderId,
+    store,
+    user: userProfile ? userProfile.displayName : '(unknown)',
+    userId: userProfile ? userProfile.userId : '(unknown)',
+    note,
+    items: orderItems
+  };
+  console.log('🎯 LIFF 訂單送出:', payload);
+
+  // ── 2026-07-30 P0：先送單、確認 Make 收到才報成功（舊版先報✅後送單，失敗使用者看不到且購物車被清）──
+  submitting = true;
+  const btn = document.querySelector('.modal-actions .btn-confirm');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 送出中…'; }
+  let ok = false, ack = null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const r = await fetch('https://hook.us2.make.com/1cddewqpygfk1d0tolswdporc2wdp0ur', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    ok = r.ok;
+    try { ack = await r.json(); } catch (e2) {}
+    console.log('Make webhook 回應', r.status);
+  } catch (e) { console.error('Webhook 失敗:', e); }
+  submitting = false;
+  const ackSt = ok ? (ack && ack.status) : null;
+  if (ackSt !== 'ok' && ackSt !== 'duplicate' && ackSt !== 'held') {
+    // 網路失敗／逾時／HTTP非2xx／純文字 Accepted／未知 JSON —— 一律「送出狀態未確認」：
+    // POST 可能已被後端處理、只是 ACK 沒回到手機，⛔不得斷言「沒送出」、也⛔不得當成功
+    if (btn) { btn.disabled = false; btn.textContent = '✓ 送出'; }
+    showToast('⚠️ 送出狀態未確認：這張單可能已送出、也可能沒有。請稍候約 1 分鐘看群組有沒有訂單卡——沒有的話再按一次送出（系統會自動擋下重複）；有的話就不用再按', 10000);
+    return;  // 購物車與備註保留、沿用同一單號重按
+  }
+  pendingOrderId = null;
+
+  closeModal();
+  if (ackSt === 'duplicate') showToast(`ℹ️ 這張單號系統已收過、本次未重複送出 (${orderId})。請確認群組稍後有訂單卡，沒有請通知老闆`, 9000);
+  else if (ackSt === 'held') showToast('⚠️ 已收單，但商品缺進貨目的地——倉管群與老闆已收到警示、會人工處理', 8000);
+  else showToast(`✅ 訂單已送出 (${orderId})`);
+
+  // 訂單迴聲只在 ok 發（迴聲＝後端完整處理完成的鑑識訊號）
+  if (ackSt === 'ok' && liff.isInClient()) {
+    liff.sendMessages([{
+      type: 'text',
+      text: `📦 ${store === '中部倉' ? '倉管' : '指寄(' + store + ')'} LIFF 訂單\n🆔 ${orderId}\n${orderItems.map(i => `• ${i.cx} ${i.name} ×${i.qty}`).join('\n')}\n備註: ${note || '無'}`
+    }]).catch(e => console.warn('sendMessages failed:', e));
+  }
+
+  Object.keys(cart).forEach(k => delete cart[k]);
+  updateCart();
+  renderProducts('hot', '');
+  document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+  document.querySelector('.cat-tab[data-cat="hot"]').classList.add('active');
+  document.getElementById('search').value = '';
+}
+
+// ============= 任務 / 庫存 / 歷史 =============
+function renderTasks() {
+  document.getElementById('tasks-list').innerHTML = whTasks.map(t => `
+    <div class="task-card ${t.urgent ? 'urgent' : ''}">
+      <div class="task-h">
+        <div><div class="task-id">${t.id}</div><div style="font-size:11px;color:#666;margin-top:1px">${t.orderId}</div></div>
+        <span class="task-status ${t.status}">${t.status}</span>
+      </div>
+      <div class="task-vendor">📦 廠商 <b>${t.vendor}</b> → 出給 <b>${t.store}</b></div>
+      <div class="task-items">${t.expected.map(it => `・${it.cx} ${it.name} ×<b>${it.qty}</b>`).join('<br>')}</div>
+      <div style="font-size:11px;color:#888;margin-bottom:6px">💬 ${t.note}</div>
+      <div class="task-act">
+        ${t.status === '待入庫' ? `<button class="btn-primary" onclick="alert('入庫流程：之後接 Make webhook')">✅ 收貨入庫</button>` : ''}
+        ${t.status === '待出貨' ? `<button class="btn-primary" onclick="alert('出貨流程：之後接 Make webhook')">📦 出貨給分店</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderInventory() {
+  let total = 0, reserved = 0;
+  inventoryData.forEach(p => { total += p.stock; reserved += p.reserved; });
+  document.getElementById('inventory-list').innerHTML = `
+    <div class="month-card"><div style="font-size:11px;opacity:.85">📊 庫存總覽</div>
+      <div style="font-size:18px;font-weight:700;margin-top:3px">${inventoryData.length} SKU · ${total} 件</div>
+      <div class="month-stats">
+        <div class="stat"><div class="lbl">已預定</div><div class="val">${reserved}</div></div>
+        <div class="stat"><div class="lbl">真實可用</div><div class="val">${total - reserved}</div></div>
+      </div>
+    </div>
+    ${inventoryData.map(p => {
+      const avail = p.stock - p.reserved;
+      const cls = avail <= 0 ? 'danger' : avail < 5 ? 'warning' : 'good';
+      return `<div class="inv-card">
+        <div class="inv-r1">
+          <div class="p-icon">${p.cx}</div>
+          <div class="p-info"><div class="p-cx">${p.cx}</div><div class="p-name">${p.name}</div><div class="p-vendor">📦 ${p.vendor}</div></div>
+        </div>
+        <div class="stock-row">
+          <div class="s-block"><div class="s-lbl">庫存</div><div class="s-val">${p.stock}</div></div>
+          <div class="s-block reserved"><div class="s-lbl">已預定</div><div class="s-val warning">${p.reserved}</div></div>
+          <div class="s-block ${avail <= 0 ? 'danger' : avail < 5 ? 'reserved' : 'available'}"><div class="s-lbl">可用</div><div class="s-val ${cls}">${avail}</div></div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function renderHistory() {
+  document.getElementById('history-list').innerHTML = `
+    <div class="month-card">
+      <div style="font-size:11px;opacity:.85">📋 本月出貨</div>
+      <div style="font-size:18px;font-weight:700;margin-top:3px">12 筆 / NT$245,800</div>
+    </div>
+    <div style="text-align:center;color:#888;padding:30px;font-size:13px">📋 之後接真實 sheet 資料</div>`;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${tab}`).classList.add('active');
+  document.querySelectorAll('.tab-item').forEach((t, i) => {
+    t.classList.toggle('active', i === ['order', 'tasks', 'inventory', 'history'].indexOf(tab));
+  });
+  if (tab === 'order') renderProducts('hot');
+  if (tab === 'tasks') renderTasks();
+  if (tab === 'inventory') renderInventory();
+  if (tab === 'history') renderHistory();
+}
+
+function showToast(msg, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms || 4000);
+}
+
+// 啟動：先 init LIFF + 載商品（並行），再 render
+loadProducts().then(() => { renderVendorTabs(); renderProducts('hot'); });
+updateCart();
+</script>
+</body>
+</html>
