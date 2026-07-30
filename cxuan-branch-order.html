@@ -602,15 +602,21 @@ async function submitOrder() {
     showToast('❌ 送出失敗，這張單「沒有」送出去！請檢查網路後再按一次送出', 8000);
     return;  // 購物車與備註保留、視窗不關，直接重按即可
   }
+  const ackSt = ack && ack.status;
+  if (ackSt !== 'ok' && ackSt !== 'duplicate' && ackSt !== 'held') {
+    // 2xx 但非已知 ACK（純文字 Accepted／未知 JSON）＝狀態未確認，⛔不得當成功
+    if (btn) { btn.disabled = false; btn.textContent = '✓ 送出'; }
+    showToast('⚠️ 狀態未確認：這張單可能已送出、也可能沒有。請稍候 1 分鐘看群組有沒有訂單卡；沒有的話再按一次送出（系統會自動擋下重複）', 9000);
+    return;  // 購物車保留、沿用同一單號重按
+  }
   pendingOrderId = null;
 
   closeModal();
-  const ackSt = ack && ack.status;
-  if (ackSt === 'duplicate') showToast(`✅ 這張單剛才已成功送出，系統已擋下重複 (${orderId})`, 6000);
+  if (ackSt === 'duplicate') showToast(`ℹ️ 這張單號系統已收過、本次未重複送出 (${orderId})。請確認群組稍後有訂單卡，沒有請通知老闆`, 9000);
   else if (ackSt === 'held') showToast('⚠️ 已收單，但商品缺出貨目的地——倉管與老闆已收到警示、會人工處理', 8000);
   else showToast(`✅ 叫貨已送出 (${orderId})`);
 
-  if (liff.isInClient()) {
+  if (ackSt === 'ok' && liff.isInClient()) {
     liff.sendMessages([{
       type: 'text',
       text: `🛒 ${store} 叫貨\n🆔 ${orderId}\n${orderItems.map(i => `• ${i.cx} ${i.name} ×${i.qty}`).join('\n')}\n備註: ${note || '無'}`
