@@ -541,7 +541,9 @@ function confirmRemove(cx) {
 
 function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
-function submitOrder() {
+let submitting = false, pendingOrderId = null;
+async function submitOrder() {
+  if (submitting) return;
   let store, groupId, branchShort;
   if (currentBranch) {
     store = currentBranch.name;
@@ -562,7 +564,8 @@ function submitOrder() {
     return { cx, name: p.name, qty, vendor: p.vendor };
   });
   const now = new Date();
-  const orderId = 'ORD-' + branchShort + '-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + now.toTimeString().slice(0, 8).replace(/:/g, '');
+  const orderId = pendingOrderId || ('ORD-' + branchShort + '-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + now.toTimeString().slice(0, 8).replace(/:/g, ''));
+  pendingOrderId = orderId;  // 失敗重按沿用同一單號，避免萬一首發其實有到→變兩張不同單
   const payload = {
     orderId,
     store,
@@ -574,14 +577,34 @@ function submitOrder() {
   };
   console.log('🎯 分店叫貨送出:', payload);
 
+  // ── 2026-07-30 P0：先送單、後端收到才報成功（舊版先報✅後送單，失敗店長看不到且購物車被清）──
+  submitting = true;
+  const btn = document.querySelector('#modal-actions .btn-confirm');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 送出中…'; }
+  let ok = false;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const r = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    ok = r.ok;
+    console.log('Webhook 回應', r.status);
+  } catch (e) { console.error('Webhook 失敗:', e); }
+  submitting = false;
+  if (!ok) {
+    if (btn) { btn.disabled = false; btn.textContent = '✓ 送出'; }
+    showToast('❌ 送出失敗，這張單「沒有」送出去！請檢查網路後再按一次送出', 8000);
+    return;  // 購物車與備註保留、視窗不關，直接重按即可
+  }
+  pendingOrderId = null;
+
   closeModal();
   showToast(`✅ 叫貨已送出 (${orderId})`);
-
-  fetch(WEBHOOK_URL, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(payload)
-  }).then(r => console.log('Webhook OK', r.status)).catch(e => console.error('Webhook 失敗:', e));
 
   if (liff.isInClient()) {
     liff.sendMessages([{
@@ -598,11 +621,11 @@ function submitOrder() {
   document.getElementById('search').value = '';
 }
 
-function showToast(msg) {
+function showToast(msg, ms) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 4000);
+  setTimeout(() => t.classList.remove('show'), ms || 4000);
 }
 
 loadProducts().then(() => { renderVendorTabs(); renderProducts('hot'); });
