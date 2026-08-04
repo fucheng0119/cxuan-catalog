@@ -51,6 +51,28 @@ code+=`
   const A=(cond,msg)=>{ if(cond){__S.passes++;} else __S.fails.push(msg); };
   const T=()=>__S.toasts[__S.toasts.length-1]||'';
   const _st=showToast; showToast=(m,ms)=>{__S.toasts.push(String(m));};
+
+  // 3M／舒萬諾退場：只移除未簽成的舒萬諾供應線，不誤刪盛智商用與家享零件。
+  const vendorCases=[
+    ['3M',true],
+    ['3M/澄軒客服/中部倉管',true],
+    ['舒萬諾',true],
+    ['台灣舒萬諾股份有限公司',true],
+    ['Solventum',true],
+    ['盛智_3m商用/中部倉管/澄軒客服',false],
+    ['家享/澄軒客服/中部倉管',false]
+  ];
+  for (const [vendor,expected] of vendorCases) {
+    A(isRetiredSolventumProduct({vendor})===expected,'退場供應商判斷錯誤: '+vendor);
+  }
+  const orderable=filterOrderableProducts([
+    {cx:'cx117',vendor:'3M',cost:1},
+    {cx:'cx370',vendor:'盛智_3m商用',cost:1},
+    {cx:'cx500',vendor:'家享',cost:1},
+    {cx:'cx0',vendor:'其他',cost:0}
+  ]).map(p=>p.cx).join(',');
+  A(orderable==='cx370,cx500','退場篩選不得誤刪盛智商用或家享零件: '+orderable);
+
   products.length=0; products.push({cx:'cx1',name:'測試濾心',vendor:'測商'});
   ${seed}
   const seedCart=()=>{Object.keys(cart).forEach(k=>delete cart[k]); cart['cx1']=2;};

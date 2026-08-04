@@ -293,6 +293,22 @@ const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7m
 const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
 const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hr
 
+// 2026-08-04：3M／舒萬諾合作未成立，從 LIFF 下架該供應線。
+// 只擋主供應商為 3M／舒萬諾的商品；盛智_3m商用與家享 3m 零件仍可叫貨。
+const RETIRED_SOLVENTUM_VENDORS = new Set([
+  '3m', '3m舒萬諾', '舒萬諾', '台灣舒萬諾股份有限公司', 'solventum'
+]);
+function isRetiredSolventumProduct(p) {
+  const primaryVendor = String((p && p.vendor) || '')
+    .split('/')[0].trim().replace(/\s+/g, '').toLowerCase();
+  return RETIRED_SOLVENTUM_VENDORS.has(primaryVendor);
+}
+function filterOrderableProducts(items) {
+  return (Array.isArray(items) ? items : []).filter(
+    p => p && p.vendor && Number(p.cost) > 0 && !isRetiredSolventumProduct(p)
+  );
+}
+
 async function loadProducts() {
   // Try fresh cache first (avoid hitting GAS too often)
   try {
@@ -301,7 +317,7 @@ async function loadProducts() {
       const obj = JSON.parse(raw);
       const age = Date.now() - obj.time;
       if (age < PRODUCTS_CACHE_TTL_MS && Array.isArray(obj.products) && obj.products.length > 0) {
-        products = obj.products;
+        products = filterOrderableProducts(obj.products);
         console.log('[products] cache hit:', products.length, 'items, age', Math.round(age/1000)+'s');
         return;
       }
@@ -316,7 +332,7 @@ async function loadProducts() {
     const data = await resp.json();
     if (!data.products) throw new Error('bad response: ' + JSON.stringify(data).slice(0,200));
     // Filter out incomplete rows (no vendor or 0 cost)
-    products = data.products.filter(p => p.vendor && p.cost > 0);
+    products = filterOrderableProducts(data.products);
     localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: products, time: Date.now() }));
     console.log('[products] fetched fresh:', products.length, 'items (filtered from', data.products.length+')');
   } catch (err) {
@@ -327,7 +343,7 @@ async function loadProducts() {
       if (raw) {
         const obj = JSON.parse(raw);
         if (Array.isArray(obj.products) && obj.products.length > 0) {
-          products = obj.products;
+          products = filterOrderableProducts(obj.products);
           console.warn('[products] using stale cache fallback:', products.length, 'items');
           if (typeof showToast === 'function') showToast('⚠️ 離線模式：使用快取資料');
           return;
