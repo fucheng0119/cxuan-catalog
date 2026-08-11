@@ -70,10 +70,6 @@
          letter-spacing:.06em}
 
   section{display:flex;flex-direction:column;gap:16px}
-  /* flex/grid 子項預設 min-width:auto，內含 min-width:530px 的表格會把整個區塊撐寬
-     → 手機上整頁橫向溢出。這裡把可壓縮性還原，讓表格只在自己的容器內橫向捲動。 */
-  #app>*,section,.sechead,.bench,.notes,.months,.watch,.totalstrip{min-width:0}
-  .tablewrap{min-width:0;max-width:100%}
   .sechead{display:flex;flex-direction:column;gap:6px}
   .sechead .lead{color:var(--ink-2);font-size:14.5px;max-width:68ch}
 
