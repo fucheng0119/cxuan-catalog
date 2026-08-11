@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0E6E76" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0C1413" media="(prefers-color-scheme: dark)">
+<title>澄軒飲水｜總公司業績儀表板</title>
+<style>
+  :root{
+    --paper:#F2F5F4; --surface:#FFFFFF; --surface-2:#E9EEED;
+    --ink:#14211F; --ink-2:#4A5A57; --ink-3:#778784;
+    --rule:#D3DCDA; --rule-2:#BFCCC9;
+    --accent:#0E6E76; --accent-soft:#DCEBEA;
+    --pos:#3D7A45; --pos-soft:#DFEBDF;
+    --neg:#A6412C; --neg-soft:#F3E2DD;
+    --warn:#8C6816; --warn-soft:#F1E9D4;
+    --font-display:"Songti TC","Noto Serif TC","Source Han Serif TC","Songti SC",Georgia,serif;
+    --font-body:"PingFang TC","Heiti TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    --font-data:ui-monospace,"SF Mono",Menlo,"Roboto Mono",monospace;
+    --shadow:0 1px 2px rgba(20,33,31,.05),0 8px 24px -16px rgba(20,33,31,.18);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0C1413; --surface:#131E1D; --surface-2:#1B2726;
+      --ink:#E6EDEB; --ink-2:#9AACA9; --ink-3:#71827F;
+      --rule:#253433; --rule-2:#334543;
+      --accent:#3BB0AC; --accent-soft:#16302F;
+      --pos:#74B378; --pos-soft:#18291A;
+      --neg:#DE7C5B; --neg-soft:#301A14;
+      --warn:#CB9E36; --warn-soft:#2A2210;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.7);
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font-family:var(--font-body);font-size:16px;line-height:1.65;
+       -webkit-font-smoothing:antialiased}
+  #app{max-width:1000px;margin:0 auto;
+       padding:max(22px,env(safe-area-inset-top)) 18px calc(56px + env(safe-area-inset-bottom));
+       display:flex;flex-direction:column;gap:40px}
+  @media (min-width:760px){#app{padding:40px 26px 72px;gap:48px}}
+
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--ink-3);font-family:var(--font-data)}
+  h1,h2,h3{font-family:var(--font-display);font-weight:600;text-wrap:balance;margin:0}
+  h1{font-size:clamp(26px,6.4vw,40px);line-height:1.22}
+  h2{font-size:clamp(18px,4.6vw,23px);line-height:1.35}
+  h3{font-size:15.5px;line-height:1.4}
+  p{margin:0}
+  .num,td.n{font-family:var(--font-data);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+  header{display:flex;flex-direction:column;gap:18px;
+         border-bottom:1px solid var(--rule);padding-bottom:22px}
+  .topline{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:space-between;align-items:baseline}
+  .headgrid{display:grid;gap:22px}
+  @media (min-width:760px){.headgrid{grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:30px}}
+  .sub{color:var(--ink-2);font-size:14.5px;max-width:58ch;margin-top:10px}
+  .bigread .v{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+              font-size:clamp(32px,9vw,46px);line-height:1;letter-spacing:-.03em;
+              color:var(--accent);display:block}
+  .bigread .k{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+              color:var(--ink-3);font-family:var(--font-data);display:block;margin-top:8px}
+  @media (min-width:760px){.bigread{text-align:right}}
+  .stamp{font-family:var(--font-data);font-size:11.5px;color:var(--ink-3);
+         border:1px solid var(--rule-2);border-radius:2px;padding:5px 10px;align-self:flex-start;
+         letter-spacing:.06em}
+
+  section{display:flex;flex-direction:column;gap:16px}
+  .sechead{display:flex;flex-direction:column;gap:6px}
+  .sechead .lead{color:var(--ink-2);font-size:14.5px;max-width:68ch}
+
+  .months{display:grid;gap:12px}
+  @media (min-width:640px){.months{grid-template-columns:repeat(3,1fr)}}
+  .mcard{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+         padding:16px 16px 14px;display:flex;flex-direction:column;gap:11px;box-shadow:var(--shadow)}
+  .mcard.now{border-color:var(--accent)}
+  .mo{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .mo b{font-family:var(--font-display);font-size:15px;font-weight:600}
+  .amt{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+       font-size:clamp(24px,6.2vw,27px);line-height:1;letter-spacing:-.025em}
+  .track{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .track span{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .mcard.now .track span{background:linear-gradient(90deg,var(--accent),var(--pos))}
+  .delta{font-family:var(--font-data);font-size:13px;font-weight:600}
+  .up{color:var(--pos)} .down{color:var(--neg)} .flat{color:var(--ink-2)}
+
+  .totalstrip{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:baseline;
+              background:var(--accent-soft);border:1px solid var(--rule);
+              border-radius:3px;padding:14px 16px}
+  .totalstrip .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+                 color:var(--ink-2);font-family:var(--font-data)}
+  .totalstrip .v{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+                 font-size:19px;font-weight:600}
+
+  .bench{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+         padding:18px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .brow{display:grid;grid-template-columns:1fr 1fr;
+        grid-template-areas:"lbl lbl" "neg pos" "val val";
+        gap:6px 0;padding:13px 0;border-bottom:1px dashed var(--rule)}
+  .brow:last-of-type{border-bottom:0}
+  .blbl{grid-area:lbl;font-size:13.5px;line-height:1.35}
+  .blbl small{display:block;color:var(--ink-3);font-size:11.5px;font-family:var(--font-data)}
+  .bneg{grid-area:neg;display:flex;justify-content:flex-end;border-right:2px solid var(--rule-2)}
+  .bpos{grid-area:pos;display:flex;justify-content:flex-start}
+  .bval{grid-area:val;font-family:var(--font-data);font-variant-numeric:tabular-nums;
+        font-size:14px;font-weight:600}
+  @media (min-width:760px){
+    .brow{grid-template-columns:180px 1fr 1fr 84px;grid-template-areas:"lbl neg pos val";
+          align-items:center;gap:0}
+    .blbl{padding-right:14px}
+    .bval{text-align:right;padding-left:12px}
+  }
+  .bar{height:19px;border-radius:1px}
+  .bar.n{background:var(--neg)} .bar.p{background:var(--pos)}
+  .bar.ghost{background:repeating-linear-gradient(135deg,var(--neg) 0 4px,transparent 4px 8px);
+             border:1px solid var(--neg)}
+  .axisnote{align-self:center;font-size:11px;color:var(--ink-3);
+            font-family:var(--font-data);letter-spacing:.06em;padding-top:8px}
+  .verdict{background:var(--pos-soft);border-left:3px solid var(--pos);
+           padding:14px 16px;border-radius:0 3px 3px 0;font-size:14.5px}
+
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--rule);
+             border-radius:3px;background:var(--surface);box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;min-width:530px}
+  caption{text-align:left;padding:13px 16px 0;font-size:12px;color:var(--ink-3)}
+  th,td{padding:10px 13px;text-align:right;border-bottom:1px solid var(--rule);
+        font-size:13.5px;white-space:nowrap}
+  th{font-family:var(--font-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--ink-3);font-weight:600;border-bottom:1px solid var(--rule-2)}
+  th:first-child,td:first-child{text-align:left;font-family:var(--font-body)}
+  tbody tr:last-child td{border-bottom:0}
+  .chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;
+        border-radius:99px;white-space:nowrap}
+  .chip.g{background:var(--pos-soft);color:var(--pos)}
+  .chip.a{background:var(--warn-soft);color:var(--warn)}
+  .chip.n{background:var(--surface-2);color:var(--ink-2)}
+  .gcell{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+  .gbar{height:8px;border-radius:1px;min-width:2px}
+  .gbar.p{background:var(--pos)} .gbar.n{background:var(--neg)}
+
+  .notes{display:grid;gap:12px}
+  @media (min-width:700px){.notes{grid-template-columns:repeat(auto-fit,minmax(262px,1fr))}}
+  .note{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--warn);
+        border-radius:0 3px 3px 0;padding:15px 16px;display:flex;flex-direction:column;gap:7px}
+  .note p{font-size:13.5px;color:var(--ink-2)}
+  .note .fig{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+             font-size:13px;color:var(--ink);font-weight:600}
+
+  .watch{background:var(--surface);border:1px solid var(--rule-2);border-radius:3px;
+         padding:18px 16px;display:flex;flex-direction:column;gap:14px}
+  .watch .v{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+            font-size:25px;font-weight:600;color:var(--warn)}
+  ul.tight{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:7px;
+           font-size:13.5px;color:var(--ink-2)}
+
+  footer{border-top:1px solid var(--rule);padding-top:20px;
+         display:flex;flex-direction:column;gap:10px;font-size:12px;color:var(--ink-3)}
+  footer b{color:var(--ink-2);font-weight:600}
+  code{font-family:var(--font-data);font-size:.92em;background:var(--surface-2);
+       padding:1px 5px;border-radius:2px}
+  .confid{background:var(--warn-soft);border:1px solid var(--warn);border-radius:3px;
+          padding:11px 14px;font-size:12.5px;color:var(--ink)}
+  @media (prefers-reduced-motion:no-preference){
+    .track span,.bar,.gbar{transition:width .5s cubic-bezier(.2,.7,.3,1)}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="topline">
+      <span class="eyebrow">澄軒飲水 · 洆軒實業</span>
+      <span class="eyebrow">資料截至 2026-08-11</span>
+    </div>
+    <div class="headgrid">
+      <div>
+        <h1>回灌北極星之後的三個月</h1>
+        <p class="sub">2026-05-24 完成離線回灌。以下每一個數字都由各店叫貨帳原始檔逐筆重算，
+          不是引用整理稿；7 月各店月總計已與總公司業績表逐店核對。</p>
+      </div>
+      <div class="bigread">
+        <span class="v">9,509,596</span>
+        <span class="k">7月 總公司業績 (NT$)</span>
+      </div>
+    </div>
+    <span class="stamp">內部報告 · 加盟主與股東共用</span>
+  </header>
+
+  <section>
+    <div class="sechead">
+      <span class="eyebrow">讀數</span>
+      <h2>三個月總公司業績</h2>
+      <p class="lead">總公司業績 ＝ 11 家分店叫貨額 ＋ 潭子總店零售淨收。三個月都用「淨收」口徑才可比。</p>
+    </div>
+    <div class="months">
+      <div class="mcard">
+        <div class="mo"><b>2026 年 5 月</b><span class="delta flat">基期</span></div>
+        <div class="amt">7,177,819</div>
+        <div class="track"><span style="width:75.5%"></span></div>
+      </div>
+      <div class="mcard">
+        <div class="mo"><b>2026 年 6 月</b><span class="delta up">▲ +10.2%</span></div>
+        <div class="amt">7,912,101</div>
+        <div class="track"><span style="width:83.2%"></span></div>
+      </div>
+      <div class="mcard now">
+        <div class="mo"><b>2026 年 7 月</b><span class="delta up">▲ +20.2%</span></div>
+        <div class="amt">9,509,596</div>
+        <div class="track"><span style="width:100%"></span></div>
+      </div>
+    </div>
+    <div class="totalstrip">
+      <span><span class="k">5→7 月累計</span> <span class="v up">＋32.5%</span></span>
+      <span><span class="k">月增金額</span> <span class="v">＋2,331,777</span></span>
+      <span><span class="k">7月 潭子日均</span> <span class="v">148,152</span></span>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <span class="eyebrow">對照基準</span>
+      <h2>關鍵不是「漲了」，是漲在一個本來會跌的月份</h2>
+      <p class="lead">分店 6 月囤貨備戰、7 月靠庫存出貨，所以 <b>6→7 月的叫貨量歷年都是往下的</b>。
+        把 2025 年 6 月那筆一次性櫻花 P0531 團購預購（桃園 15 台、員林 10 台）剝掉之後，
+        去年同期同店是 −25.0%。今年同一批店幾乎沒掉，全公司還往上衝。</p>
+    </div>
+    <div class="bench">
+      <div class="brow">
+        <div class="blbl">2025 年 6→7 月<small>同 3 店 · 已剝除團購預購</small></div>
+        <div class="bneg"><div class="bar ghost" style="width:100%"></div></div>
+        <div class="bpos"></div>
+        <div class="bval down">−25.0%</div>
+      </div>
+      <div class="brow">
+        <div class="blbl">2026 年 6→7 月<small>同 3 店 · 可比基準</small></div>
+        <div class="bneg"><div class="bar n" style="width:3.2%"></div></div>
+        <div class="bpos"></div>
+        <div class="bval down">−0.8%</div>
+      </div>
+      <div class="brow">
+        <div class="blbl">2026 年 6→7 月<small>全公司 · 剝除鳳山整批囤貨</small></div>
+        <div class="bneg"></div>
+        <div class="bpos"><div class="bar p" style="width:71.2%"></div></div>
+        <div class="bval up">+17.8%</div>
+      </div>
+      <div class="brow">
+        <div class="blbl">2026 年 6→7 月<small>全公司 · 帳面實際</small></div>
+        <div class="bneg"></div>
+        <div class="bpos"><div class="bar p" style="width:80.8%"></div></div>
+        <div class="bval up">+20.2%</div>
+      </div>
+      <div class="axisnote">◀ 衰退　　0　　成長 ▶</div>
+    </div>
+    <div class="verdict">
+      <b>結論：</b>同店基準改善約 <b>24 個百分點</b>（−25.0% → −0.8%）；全公司對照去年同期的季節性，
+      逆勢約 <b>43 個百分點</b>。成長是真的，不是暑假旺季的錯覺。
+      唯一跨兩年同一份帳的員林，7 月 YoY <b>+37.2%</b>。
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <span class="eyebrow">分店明細</span>
+      <h2>成長不是廣告給的，是店給的</h2>
+      <p class="lead">同一套北極星訊號、同一套 PMax、同一套素材，各店 5→7 月的差距大到不像同一家公司。
+        廣告把人帶到門口，成交是店裡的事。</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <caption>單位 NT$／各店當月叫貨額（＝該店應匯回總公司金額，內含當月稅金與廣告費）</caption>
+        <thead>
+          <tr><th scope="col">分店</th><th scope="col">5 月</th><th scope="col">6 月</th>
+              <th scope="col">7 月</th><th scope="col">5→7 月</th><th scope="col">動能</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>台北信義</td><td class="n">129,003</td><td class="n">397,149</td><td class="n">313,017</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:56px"></span><b class="up">+142.6%</b></div></td>
+            <td><span class="chip a">衝高後回落</span></td></tr>
+          <tr><td>桃園</td><td class="n">260,808</td><td class="n">337,625</td><td class="n">590,216</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:50px"></span><b class="up">+126.3%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>新莊</td><td class="n">233,677</td><td class="n">415,662</td><td class="n">490,797</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:44px"></span><b class="up">+110.0%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>台中東區</td><td class="n">131,976</td><td class="n">182,742</td><td class="n">216,980</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:26px"></span><b class="up">+64.4%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>沙鹿</td><td class="n">286,113</td><td class="n">328,769</td><td class="n">466,411</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:25px"></span><b class="up">+63.0%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>鳳山</td><td class="n">757,561</td><td class="n">777,980</td><td class="n">1,208,276</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:24px"></span><b class="up">+59.5%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>楠梓</td><td class="n">328,770</td><td class="n">299,639</td><td class="n">445,480</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:14px"></span><b class="up">+35.5%</b></div></td>
+            <td><span class="chip n">回升</span></td></tr>
+          <tr><td>西屯</td><td class="n">533,665</td><td class="n">618,134</td><td class="n">650,169</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:9px"></span><b class="up">+21.8%</b></div></td>
+            <td><span class="chip g">連兩月成長</span></td></tr>
+          <tr><td>南屯</td><td class="n">58,836</td><td class="n">41,594</td><td class="n">64,926</td>
+            <td class="n"><div class="gcell"><span class="gbar p" style="width:4px"></span><b class="up">+10.4%</b></div></td>
+            <td><span class="chip n">回升</span></td></tr>
+          <tr><td>嘉義</td><td class="n">704,069</td><td class="n">616,203</td><td class="n">680,269</td>
+            <td class="n"><div class="gcell"><span class="gbar n" style="width:2px"></span><b class="down">−3.4%</b></div></td>
+            <td><span class="chip n">回升</span></td></tr>
+          <tr><td>員林</td><td class="n">924,429</td><td class="n">746,654</td><td class="n">525,606</td>
+            <td class="n"><div class="gcell"><span class="gbar n" style="width:17px"></span><b class="down">−43.1%</b></div></td>
+            <td><span class="chip a">季節性收縮</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notes">
+      <div class="note" style="border-left-color:var(--pos)">
+        <h3>員林不是垮，是它的季節</h3>
+        <p>員林 7 月一向是低月：2025 年同期 6→7 月掉 <span class="fig">−28.7%</span>，今年只掉 −31.9%，
+          而且 <span class="fig">7 月 YoY 仍 +37.2%</span>。它 5 月是全系統第一名，7 月的收縮屬正常回落。</p>
+      </div>
+      <div class="note">
+        <h3>台北的 +142% 尚未逐筆驗證</h3>
+        <p>台北信義與嘉義兩本帳不在同步夾，無法逐列掃單筆大額，成長率<b>可能含一次性項目</b>，
+          對外引用前會先驗。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <span class="eyebrow">校正項</span>
+      <h2>三塊水分，講清楚才站得住</h2>
+      <p class="lead">這三項不扣掉，這份成長會被高估。攤開來講，數字才有說服力。</p>
+    </div>
+    <div class="notes">
+      <div class="note">
+        <h3>潭子 7 月多了兩個營業日</h3>
+        <p>7 月 23 天、6 月只有 21 天（6/19 端午三連休）。潭子 +26.9% 裡約三分之一是日曆給的。</p>
+        <p class="fig">剝掉天數的日均成長 ＝ +15.8%</p>
+      </div>
+      <div class="note">
+        <h3>分店那半是「叫貨」不是零售</h3>
+        <p>整批囤貨會把下個月的量借到本月。鳳山 7 月有一筆 21L 軟淨一體機（6 台價）×12 台。</p>
+        <p class="fig">該筆 186,000 ─ 剝掉後全公司 +20.2% → +17.8%</p>
+      </div>
+      <div class="note">
+        <h3>「業績」不是純貨款</h3>
+        <p>各店數字＝該店應匯回總公司金額，逐列可見<b>當月稅金與 FB／Google 廣告費</b>也在裡面。</p>
+        <p class="fig">例：鳳山 7 月含 57,537 稅金／廣告費</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead">
+      <span class="eyebrow">待觀察</span>
+      <h2>8 月才是真考驗</h2>
+    </div>
+    <div class="watch">
+      <div>
+        <span class="eyebrow" style="display:block;margin-bottom:4px">8 月守住線</span>
+        <span class="v">9,000,000</span>
+      </div>
+      <p style="font-size:14px;color:var(--ink-2);max-width:54ch">
+        2025 年的 8 月比 7 月<b>又更低</b>（桃園 −34%、員林 −10%）。
+        如果 8 月守得住，代表飛輪真的轉起來了；如果回吐，就是 7 月把 8 月的貨提前拉走。</p>
+      <ul class="tight">
+        <li>目前各店 8 月分頁幾乎只有 7/31 那批出貨，帳務尚未登錄到位，還讀不出趨勢。</li>
+        <li>7 月成長最猛的桃園、鳳山、新莊，8 月能不能守住，是這一季的重點。</li>
+        <li>下一步驗證：改看各店 PMax 帶進來的<b>成交筆數</b>，才分得出哪些成長真的是廣告給的。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <p class="confid">本頁為<b>內部報告</b>，連結未公開索引但未加密——請勿轉貼到公開場合或社群。
+      需要對外版本請另外索取。</p>
+    <p><b>資料源</b>　各店叫貨帳原始檔（明珠專用／分店帳專用）＋澄軒分店歷年拿貨記錄（2025 年同期）。
+      7 月各店月總計與業績表對得上（西屯 650,169、鳳山 1,208,276、楠梓 445,480、沙鹿 466,411 完全一致；
+      員林帳上 525,476、表上 525,606，差 130 元）。</p>
+    <p><b>已知限制</b>　① 台北信義、嘉義兩本帳不在同步夾，未逐列驗證單筆大額。
+      ② 分店明細取自 8/11 業績表，逐店加總與表上月總計有 ≤34 元的讀表誤差，不影響任何結論。
+      ③ 2025 年可比店僅桃園、員林、南屯三家，季節性基準取自這三家。</p>
+    <p><b>口徑訂正紀錄</b>　初版把 2025 年 6 月的一次性團購預購（桃園 330,000＋員林 220,000）
+      當成季節常態，把季節跌幅誇大近一倍（−47% vs 實際 −25.0%），經指出後剝除重算。</p>
+  </footer>
+</div>
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
+<script>
+  // 這頁在 LINE 裡（LIFF）和在一般瀏覽器裡都要能看。
+  // LIFF SDK 載不到或 init 失敗都不影響閱讀，靜默略過。
+  window.addEventListener('load', function () {
+    try {
+      if (window.liff && typeof liff.init === 'function') {
+        liff.init({ liffId: '2010227077-Xr0jJKKz' }).catch(function () {});
+      }
+    } catch (e) { /* 純瀏覽器開啟，忽略 */ }
+  });
+</script>
+</body>
+</html>
