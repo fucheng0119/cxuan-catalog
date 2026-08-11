@@ -388,17 +388,7 @@
   </footer>
 </div>
 
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js" defer></script>
-<script>
-  // 這頁在 LINE 裡（LIFF）和在一般瀏覽器裡都要能看。
-  // LIFF SDK 載不到或 init 失敗都不影響閱讀，靜默略過。
-  window.addEventListener('load', function () {
-    try {
-      if (window.liff && typeof liff.init === 'function') {
-        liff.init({ liffId: '2010227077-Xr0jJKKz' }).catch(function () {});
-      }
-    } catch (e) { /* 純瀏覽器開啟，忽略 */ }
-  });
-</script>
+<!-- 純靜態頁：在 LINE 內（LIFF 容器）與一般瀏覽器都直接可讀，
+     不呼叫 liff.init，與既有 cxuan-branch-order.html 慣例一致。 -->
 </body>
 </html>
