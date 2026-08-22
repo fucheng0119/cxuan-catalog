@@ -164,231 +164,200 @@
        padding:1px 5px;border-radius:2px}
   .confid{background:var(--warn-soft);border:1px solid var(--warn);border-radius:3px;
           padding:11px 14px;font-size:12.5px;color:var(--ink)}
+  .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media (min-width:760px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .kpi{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+       padding:15px 16px;box-shadow:var(--shadow);min-width:0}
+  .kpi .k{font-family:var(--font-data);font-size:10.5px;letter-spacing:.08em;
+          text-transform:uppercase;color:var(--ink-3);display:block}
+  .kpi .v{font-family:var(--font-data);font-variant-numeric:tabular-nums;
+          font-size:clamp(20px,5vw,27px);line-height:1.1;letter-spacing:-.025em;
+          display:block;margin-top:8px;overflow-wrap:anywhere}
+  .kpi .s{font-size:11.5px;color:var(--ink-3);display:block;margin-top:8px;line-height:1.4}
+  .progress{height:10px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .progress span{display:block;height:100%;border-radius:99px;background:var(--accent)}
+  .progress.warn span{background:var(--warn)}
+  .progressgrid{display:grid;gap:12px}
+  .progressrow{display:grid;grid-template-columns:minmax(130px,1fr) minmax(120px,2fr) 84px;
+               align-items:center;gap:12px;font-size:13px}
+  .progressrow .label small{display:block;color:var(--ink-3);font-size:11px}
+  .progressrow .value{font-family:var(--font-data);font-variant-numeric:tabular-nums;text-align:right}
+  .ranktable table{min-width:920px}
+  .ranktable td:first-child,.ranktable th:first-child{text-align:center;font-family:var(--font-data)}
+  .ranktable td:nth-child(2),.ranktable th:nth-child(2){text-align:left;font-family:var(--font-body)}
+  .daybars{display:grid;gap:9px}
+  .dayrow{display:grid;grid-template-columns:52px minmax(90px,1fr) 86px;gap:10px;align-items:center}
+  .dayrow .d{font-family:var(--font-data);font-size:11.5px;color:var(--ink-3)}
+  .dayrow .b{height:11px;background:var(--surface-2);border-radius:99px;overflow:hidden}
+  .dayrow .b span{display:block;height:100%;background:var(--accent);border-radius:99px}
+  .dayrow .n{font-family:var(--font-data);font-size:12px;text-align:right}
+  .muted{color:var(--ink-3)}
+  .nowrap{white-space:nowrap}
   @media (prefers-reduced-motion:no-preference){
     .track span,.bar,.gbar{transition:width .5s cubic-bezier(.2,.7,.3,1)}
+  }
+  @media print{
+    :root{--paper:#fff;--surface:#fff;--surface-2:#eef2f1;--ink:#14211f;--ink-2:#4a5a57;
+          --ink-3:#778784;--rule:#d3dcda;--rule-2:#bfccc9;--accent:#0e6e76;
+          --accent-soft:#dcebea;--pos:#3d7a45;--pos-soft:#dfebdf;--neg:#a6412c;
+          --neg-soft:#f3e2dd;--warn:#8c6816;--warn-soft:#f1e9d4;--shadow:none}
+    @page{size:A4;margin:11mm}
+    body{font-size:12px;background:#fff}
+    #app{max-width:none;padding:0;gap:22px}
+    header{gap:10px;padding-bottom:12px}
+    section{gap:10px;break-inside:auto}
+    .kpi,.mcard,.note,.watch,.verdict{box-shadow:none;break-inside:avoid}
+    h1{font-size:26px} h2{font-size:18px}
+    .sub,.sechead .lead{font-size:11.5px}
+    .kpi{padding:10px 11px}.kpi .v{font-size:19px}.kpi .s{font-size:9.5px}
+    .tablewrap{overflow:visible;break-inside:auto}
+    table{min-width:0}.ranktable table{min-width:0}
+    thead{display:table-header-group} tr{break-inside:avoid}
+    th,td{padding:4px 6px;font-size:9px}
+    th{font-size:7.5px}
+    caption{font-size:8.5px;padding:7px 8px 0}
+    .chip{font-size:8px;padding:1px 5px}
+    .notes{grid-template-columns:repeat(3,1fr)}
+    .note{padding:9px 10px}.note p{font-size:9.5px}.note .fig{font-size:9.5px}
+    footer{font-size:8.5px;gap:5px;padding-top:10px}
+    .confid{font-size:9px;padding:7px 9px}
   }
 </style>
 </head>
 <body>
 <div id="app">
-
   <header>
     <div class="topline">
       <span class="eyebrow">澄軒飲水 · 洆軒實業</span>
-      <span class="eyebrow">資料截至 2026-08-11</span>
+      <span class="eyebrow">資料截至 2026-08-22</span>
     </div>
     <div class="headgrid">
       <div>
-        <h1>回灌北極星之後的三個月</h1>
-        <p class="sub">2026-05-24 完成離線回灌。以下每一個數字都由各店叫貨帳原始檔逐筆重算，
-          不是引用整理稿；7 月各店月總計已與總公司業績表逐店核對。</p>
+        <h1>8 月營運快照：誰在拉，誰在掉</h1>
+        <p class="sub">11 家分店叫貨帳逐筆重算，加上潭子總店日銷淨收（已含蝦皮）。
+          只計到今天；帳上未來日期共 91,245 元另列、不灌進實績。</p>
       </div>
       <div class="bigread">
-        <span class="v">9,509,596</span>
-        <span class="k">7月 總公司業績 (NT$)</span>
+        <span class="v">5,520,058</span>
+        <span class="k">8月截至目前 · 合併口徑 (NT$)</span>
       </div>
     </div>
-    <span class="stamp">內部報告 · 加盟主與股東共用</span>
+    <span class="stamp" id="audienceStamp">內部報告 · 管理共用版</span>
   </header>
 
   <section>
     <div class="sechead">
-      <span class="eyebrow">讀數</span>
-      <h2>三個月總公司業績</h2>
-      <p class="lead">總公司業績 ＝ 11 家分店叫貨額 ＋ 潭子總店零售淨收。三個月都用「淨收」口徑才可比。</p>
+      <span class="eyebrow">最新讀數</span>
+      <h2>8 月走到 15／21 個工作日</h2>
+      <p class="lead">時間進度 71.4%，9,000,000 守住線目前完成 61.3%；分店叫貨和潭子零售是兩種不同業務流，先分開看，再合併看。</p>
     </div>
-    <div class="months">
-      <div class="mcard">
-        <div class="mo"><b>2026 年 5 月</b><span class="delta flat">基期</span></div>
-        <div class="amt">7,177,819</div>
-        <div class="track"><span style="width:75.5%"></span></div>
-      </div>
-      <div class="mcard">
-        <div class="mo"><b>2026 年 6 月</b><span class="delta up">▲ +10.2%</span></div>
-        <div class="amt">7,912,101</div>
-        <div class="track"><span style="width:83.2%"></span></div>
-      </div>
-      <div class="mcard now">
-        <div class="mo"><b>2026 年 7 月</b><span class="delta up">▲ +20.2%</span></div>
-        <div class="amt">9,509,596</div>
-        <div class="track"><span style="width:100%"></span></div>
-      </div>
+    <div class="kpis">
+      <div class="kpi"><span class="k">11 店叫貨實績</span><span class="v">3,588,743</span><span class="s">未來日期 91,245 未列入</span></div>
+      <div class="kpi"><span class="k">潭子淨收</span><span class="v">1,931,315</span><span class="s">含蝦皮；含稅銷售額 1,967,687</span></div>
+      <div class="kpi"><span class="k">9 百萬守住線</span><span class="v">61.3%</span><span class="s">尚差 3,479,942</span></div>
+      <div class="kpi"><span class="k">線性月底指標</span><span class="v">7,728,081</span><span class="s">按 15／21 工作日換算，非正式預測</span></div>
     </div>
-    <div class="totalstrip">
-      <span><span class="k">5→7 月累計</span> <span class="v up">＋32.5%</span></span>
-      <span><span class="k">月增金額</span> <span class="v">＋2,331,777</span></span>
-      <span><span class="k">7月 潭子日均</span> <span class="v">148,152</span></span>
+    <div class="watch">
+      <div class="progressgrid">
+        <div class="progressrow">
+          <div class="label">實績完成度<small>5,520,058／9,000,000</small></div>
+          <div class="progress warn"><span style="width:61.3%"></span></div><div class="value">61.3%</div>
+        </div>
+        <div class="progressrow">
+          <div class="label">工作日進度<small>15／21 日</small></div>
+          <div class="progress"><span style="width:71.4%"></span></div><div class="value">71.4%</div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2)">目前落後線性守住線約 <b>10.1 個百分點</b>。若要在剩餘 6 個工作日碰到 9 百萬，平均每天需新增約 <b class="num">579,990</b>；分店叫貨不均勻，月底仍可能被大單拉動。</p>
     </div>
   </section>
 
   <section>
     <div class="sechead">
-      <span class="eyebrow">對照基準</span>
-      <h2>關鍵不是「漲了」，是漲在一個本來會跌的月份</h2>
-      <p class="lead">分店 6 月囤貨備戰、7 月靠庫存出貨，所以 <b>6→7 月的叫貨量歷年都是往下的</b>。
-        把 2025 年 6 月那筆一次性櫻花 P0531 團購預購（桃園 15 台、員林 10 台）剝掉之後，
-        去年同期同店是 −25.0%。今年同一批店幾乎沒掉，全公司還往上衝。</p>
+      <span class="eyebrow">分店叫貨動能</span>
+      <h2>楠梓、嘉義、東區領先；新莊、員林、西屯落後</h2>
+      <p class="lead">動能指標＝8 月截至目前 ÷ 15 × 21，再與 7 月整月叫貨比。這是線性進度尺，不是月底承諾；叫貨低也可能代表正在消化庫存。</p>
     </div>
-    <div class="bench">
-      <div class="brow">
-        <div class="blbl">2025 年 6→7 月<small>同 3 店 · 已剝除團購預購</small></div>
-        <div class="bneg"><div class="bar ghost" style="width:100%"></div></div>
-        <div class="bpos"></div>
-        <div class="bval down">−25.0%</div>
-      </div>
-      <div class="brow">
-        <div class="blbl">2026 年 6→7 月<small>同 3 店 · 可比基準</small></div>
-        <div class="bneg"><div class="bar n" style="width:3.2%"></div></div>
-        <div class="bpos"></div>
-        <div class="bval down">−0.8%</div>
-      </div>
-      <div class="brow">
-        <div class="blbl">2026 年 6→7 月<small>全公司 · 剝除鳳山整批囤貨</small></div>
-        <div class="bneg"></div>
-        <div class="bpos"><div class="bar p" style="width:71.2%"></div></div>
-        <div class="bval up">+17.8%</div>
-      </div>
-      <div class="brow">
-        <div class="blbl">2026 年 6→7 月<small>全公司 · 帳面實際</small></div>
-        <div class="bneg"></div>
-        <div class="bpos"><div class="bar p" style="width:80.8%"></div></div>
-        <div class="bval up">+20.2%</div>
-      </div>
-      <div class="axisnote">◀ 衰退　　0　　成長 ▶</div>
-    </div>
-    <div class="verdict">
-      <b>結論：</b>同店基準改善約 <b>24 個百分點</b>（−25.0% → −0.8%）；全公司對照去年同期的季節性，
-      逆勢約 <b>43 個百分點</b>。成長是真的，不是暑假旺季的錯覺。
-      唯一跨兩年同一份帳的員林，7 月 YoY <b>+37.2%</b>。
-    </div>
-  </section>
-
-  <section>
-    <div class="sechead">
-      <span class="eyebrow">分店明細</span>
-      <h2>成長不是廣告給的，是店給的</h2>
-      <p class="lead">同一套北極星訊號、同一套 PMax、同一套素材，各店 5→7 月的差距大到不像同一家公司。
-        廣告把人帶到門口，成交是店裡的事。</p>
-    </div>
-    <div class="tablewrap">
+    <div class="tablewrap ranktable">
       <table>
-        <caption>單位 NT$／各店當月叫貨額（＝該店應匯回總公司金額，內含當月稅金與廣告費）</caption>
-        <thead>
-          <tr><th scope="col">分店</th><th scope="col">5 月</th><th scope="col">6 月</th>
-              <th scope="col">7 月</th><th scope="col">5→7 月</th><th scope="col">動能</th></tr>
-        </thead>
+        <caption>單位 NT$／依「線性月底 vs 7月」排序；更新日是來源帳本檔案最後修改日期</caption>
+        <thead><tr><th>量排名</th><th>分店</th><th>8月實績</th><th>7月整月</th><th>已達7月</th><th>線性月底</th><th>vs 7月</th><th>判讀</th><th>更新日</th></tr></thead>
         <tbody>
-          <tr><td>台北信義</td><td class="n">129,003</td><td class="n">397,149</td><td class="n">313,017</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:56px"></span><b class="up">+142.6%</b></div></td>
-            <td><span class="chip a">衝高後回落</span></td></tr>
-          <tr><td>桃園</td><td class="n">260,808</td><td class="n">337,625</td><td class="n">590,216</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:50px"></span><b class="up">+126.3%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>新莊</td><td class="n">233,677</td><td class="n">415,662</td><td class="n">490,797</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:44px"></span><b class="up">+110.0%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>台中東區</td><td class="n">131,976</td><td class="n">182,742</td><td class="n">216,980</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:26px"></span><b class="up">+64.4%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>沙鹿</td><td class="n">286,113</td><td class="n">328,769</td><td class="n">466,411</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:25px"></span><b class="up">+63.0%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>鳳山</td><td class="n">757,561</td><td class="n">777,980</td><td class="n">1,208,276</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:24px"></span><b class="up">+59.5%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>楠梓</td><td class="n">328,770</td><td class="n">299,639</td><td class="n">445,480</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:14px"></span><b class="up">+35.5%</b></div></td>
-            <td><span class="chip n">回升</span></td></tr>
-          <tr><td>西屯</td><td class="n">533,665</td><td class="n">618,134</td><td class="n">650,169</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:9px"></span><b class="up">+21.8%</b></div></td>
-            <td><span class="chip g">連兩月成長</span></td></tr>
-          <tr><td>南屯</td><td class="n">58,836</td><td class="n">41,594</td><td class="n">64,926</td>
-            <td class="n"><div class="gcell"><span class="gbar p" style="width:4px"></span><b class="up">+10.4%</b></div></td>
-            <td><span class="chip n">回升</span></td></tr>
-          <tr><td>嘉義</td><td class="n">704,069</td><td class="n">616,203</td><td class="n">680,269</td>
-            <td class="n"><div class="gcell"><span class="gbar n" style="width:2px"></span><b class="down">−3.4%</b></div></td>
-            <td><span class="chip n">回升</span></td></tr>
-          <tr><td>員林</td><td class="n">924,429</td><td class="n">746,654</td><td class="n">525,606</td>
-            <td class="n"><div class="gcell"><span class="gbar n" style="width:17px"></span><b class="down">−43.1%</b></div></td>
-            <td><span class="chip a">季節性收縮</span></td></tr>
+          <tr><td>3</td><td>楠梓</td><td class="n">466,222</td><td class="n">445,480</td><td class="n">104.7%</td><td class="n">652,711</td><td class="n up">+46.5%</td><td><span class="chip g">領先</span></td><td class="n muted">8/17</td></tr>
+          <tr><td>2</td><td>嘉義</td><td class="n">656,194</td><td class="n">680,269</td><td class="n">96.5%</td><td class="n">918,672</td><td class="n up">+35.0%</td><td><span class="chip g">領先</span></td><td class="n muted">8/21</td></tr>
+          <tr><td>9</td><td>台中東區</td><td class="n">173,621</td><td class="n">216,980</td><td class="n">80.0%</td><td class="n">243,069</td><td class="n up">+12.0%</td><td><span class="chip g">領先</span></td><td class="n muted">8/21</td></tr>
+          <tr><td>6</td><td>台北信義</td><td class="n">240,233</td><td class="n">313,017</td><td class="n">76.7%</td><td class="n">336,326</td><td class="n up">+7.4%</td><td><span class="chip n">守住</span></td><td class="n muted">8/22</td></tr>
+          <tr><td>1</td><td>鳳山</td><td class="n">855,036</td><td class="n">1,208,276</td><td class="n">70.8%</td><td class="n">1,197,050</td><td class="n down">−0.9%</td><td><span class="chip n">持平</span></td><td class="n muted">8/21</td></tr>
+          <tr><td>11</td><td>南屯</td><td class="n">38,965</td><td class="n">64,926</td><td class="n">60.0%</td><td class="n">54,551</td><td class="n down">−16.0%</td><td><span class="chip a">觀察</span></td><td class="n muted">8/19</td></tr>
+          <tr><td>5</td><td>沙鹿</td><td class="n">268,633</td><td class="n">466,411</td><td class="n">57.6%</td><td class="n">376,086</td><td class="n down">−19.4%</td><td><span class="chip a">觀察</span></td><td class="n muted">8/17</td></tr>
+          <tr><td>4</td><td>桃園</td><td class="n">339,492</td><td class="n">590,216</td><td class="n">57.5%</td><td class="n">475,289</td><td class="n down">−19.5%</td><td><span class="chip a">觀察</span></td><td class="n muted">8/21</td></tr>
+          <tr><td>7</td><td>新莊</td><td class="n">230,375</td><td class="n">490,797</td><td class="n">46.9%</td><td class="n">322,525</td><td class="n down">−34.3%</td><td><span class="chip a">落後</span></td><td class="n muted">8/22</td></tr>
+          <tr><td>8</td><td>員林</td><td class="n">225,124</td><td class="n">525,606</td><td class="n">42.8%</td><td class="n">315,174</td><td class="n down">−40.0%</td><td><span class="chip a">落後</span></td><td class="n muted">8/22</td></tr>
+          <tr><td>10</td><td>西屯</td><td class="n">94,848</td><td class="n">650,169</td><td class="n">14.6%</td><td class="n">132,787</td><td class="n down">−79.6%</td><td><span class="chip a">落後</span></td><td class="n muted">8/20</td></tr>
         </tbody>
       </table>
     </div>
     <div class="notes">
-      <div class="note" style="border-left-color:var(--pos)">
-        <h3>員林不是垮，是它的季節</h3>
-        <p>員林 7 月一向是低月：2025 年同期 6→7 月掉 <span class="fig">−28.7%</span>，今年只掉 −31.9%，
-          而且 <span class="fig">7 月 YoY 仍 +37.2%</span>。它 5 月是全系統第一名，7 月的收縮屬正常回落。</p>
-      </div>
-      <div class="note">
-        <h3>台北的 +142% 尚未逐筆驗證</h3>
-        <p>台北信義與嘉義兩本帳不在同步夾，無法逐列掃單筆大額，成長率<b>可能含一次性項目</b>，
-          對外引用前會先驗。</p>
-      </div>
+      <div class="note" style="border-left-color:var(--pos)"><h3>前三名動能</h3><p>楠梓已超過 7 月整月；嘉義已達 96.5%；東區雖量排名第 9，進度換算仍高於 7 月約 12%。</p></div>
+      <div class="note"><h3>落後三店</h3><p>新莊、員林、西屯按目前叫貨進度明顯低於 7 月。先確認是否仍有未入帳或庫存消化，再判斷成交端問題。</p></div>
+      <div class="note"><h3>資料新鮮度</h3><p>楠梓、沙鹿來源檔最後更新 8/17，南屯 8/19；這三店的線性判讀要保留，不能把未補帳直接當成業績差。</p></div>
     </div>
   </section>
 
   <section>
     <div class="sechead">
-      <span class="eyebrow">校正項</span>
-      <h2>三塊水分，講清楚才站得住</h2>
-      <p class="lead">這三項不扣掉，這份成長會被高估。攤開來講，數字才有說服力。</p>
+      <span class="eyebrow">潭子總店</span>
+      <h2>8 月淨收 1,931,315，含蝦皮</h2>
+      <p class="lead">來源為 115.08 日銷「8月總額」分頁；15 個已登錄營業日逐日加總。淨收率 98.2%，日均淨收 128,754。</p>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><span class="k">含稅銷售額</span><span class="v">1,967,687</span><span class="s">所有平台合計</span></div>
+      <div class="kpi"><span class="k">淨收</span><span class="v">1,931,315</span><span class="s">本儀表板合併採這個口徑</span></div>
+      <div class="kpi"><span class="k">日均淨收</span><span class="v">128,754</span><span class="s">15 個已登錄營業日</span></div>
+      <div class="kpi"><span class="k">21日線性值</span><span class="v">2,703,841</span><span class="s">僅供進度比較</span></div>
     </div>
     <div class="notes">
-      <div class="note">
-        <h3>潭子 7 月多了兩個營業日</h3>
-        <p>7 月 23 天、6 月只有 21 天（6/19 端午三連休）。潭子 +26.9% 裡約三分之一是日曆給的。</p>
-        <p class="fig">剝掉天數的日均成長 ＝ +15.8%</p>
-      </div>
-      <div class="note">
-        <h3>分店那半是「叫貨」不是零售</h3>
-        <p>整批囤貨會把下個月的量借到本月。鳳山 7 月有一筆 21L 軟淨一體機（6 台價）×12 台。</p>
-        <p class="fig">該筆 186,000 ─ 剝掉後全公司 +20.2% → +17.8%</p>
-      </div>
-      <div class="note">
-        <h3>「業績」不是純貨款</h3>
-        <p>各店數字＝該店應匯回總公司金額，逐列可見<b>當月稅金與 FB／Google 廣告費</b>也在裡面。</p>
-        <p class="fig">例：鳳山 7 月含 57,537 稅金／廣告費</p>
-      </div>
+      <div class="note" style="border-left-color:var(--pos)"><h3>最高三天</h3><div class="daybars">
+        <div class="dayrow"><span class="d">8/18</span><span class="b"><span style="width:100%"></span></span><span class="n">257,346</span></div>
+        <div class="dayrow"><span class="d">8/07</span><span class="b"><span style="width:76.9%"></span></span><span class="n">197,871</span></div>
+        <div class="dayrow"><span class="d">8/11</span><span class="b"><span style="width:69.1%"></span></span><span class="n">177,733</span></div>
+      </div></div>
+      <div class="note"><h3>最低三天</h3><div class="daybars">
+        <div class="dayrow"><span class="d">8/19</span><span class="b"><span style="width:19.2%"></span></span><span class="n">49,343</span></div>
+        <div class="dayrow"><span class="d">8/14</span><span class="b"><span style="width:26.1%"></span></span><span class="n">67,238</span></div>
+        <div class="dayrow"><span class="d">8/04</span><span class="b"><span style="width:26.2%"></span></span><span class="n">67,434</span></div>
+      </div></div>
     </div>
   </section>
 
   <section>
     <div class="sechead">
-      <span class="eyebrow">待觀察</span>
-      <h2>8 月才是真考驗</h2>
+      <span class="eyebrow">歷史基準</span>
+      <h2>5–7 月已完成；8 月是未結月快照</h2>
+      <p class="lead">8 月不可直接拿未結月金額和整月相比；線性值只用來看節奏。</p>
     </div>
-    <div class="watch">
-      <div>
-        <span class="eyebrow" style="display:block;margin-bottom:4px">8 月守住線</span>
-        <span class="v">9,000,000</span>
-      </div>
-      <p style="font-size:14px;color:var(--ink-2);max-width:54ch">
-        2025 年的 8 月比 7 月<b>又更低</b>（桃園 −34%、員林 −10%）。
-        如果 8 月守得住，代表飛輪真的轉起來了；如果回吐，就是 7 月把 8 月的貨提前拉走。</p>
-      <ul class="tight">
-        <li>目前各店 8 月分頁幾乎只有 7/31 那批出貨，帳務尚未登錄到位，還讀不出趨勢。</li>
-        <li>7 月成長最猛的桃園、鳳山、新莊，8 月能不能守住，是這一季的重點。</li>
-        <li>下一步驗證：改看各店 PMax 帶進來的<b>成交筆數</b>，才分得出哪些成長真的是廣告給的。</li>
-      </ul>
+    <div class="months">
+      <div class="mcard"><div class="mo"><b>2026 年 5 月</b><span class="delta flat">已結</span></div><div class="amt">7,177,819</div><div class="track"><span style="width:75.5%"></span></div></div>
+      <div class="mcard"><div class="mo"><b>2026 年 6 月</b><span class="delta up">+10.2%</span></div><div class="amt">7,912,101</div><div class="track"><span style="width:83.2%"></span></div></div>
+      <div class="mcard"><div class="mo"><b>2026 年 7 月</b><span class="delta up">+20.2%</span></div><div class="amt">9,509,596</div><div class="track"><span style="width:100%"></span></div></div>
     </div>
+    <div class="totalstrip"><span><span class="k">8月截至目前</span> <span class="v">5,520,058</span></span><span><span class="k">線性月底</span> <span class="v down">7,728,081</span></span><span><span class="k">vs 7月</span> <span class="v down">−18.7%</span></span></div>
   </section>
 
   <footer>
-    <p class="confid">本頁為<b>內部報告</b>，連結未公開索引但未加密——請勿轉貼到公開場合或社群。
-      需要對外版本請另外索取。</p>
-    <p><b>資料源</b>　各店叫貨帳原始檔（明珠專用／分店帳專用）＋澄軒分店歷年拿貨記錄（2025 年同期）。
-      7 月各店月總計與業績表對得上（西屯 650,169、鳳山 1,208,276、楠梓 445,480、沙鹿 466,411 完全一致；
-      員林帳上 525,476、表上 525,606，差 130 元）。</p>
-    <p><b>已知限制</b>　① 台北信義、嘉義兩本帳不在同步夾，未逐列驗證單筆大額。
-      ② 分店明細取自 8/11 業績表，逐店加總與表上月總計有 ≤34 元的讀表誤差，不影響任何結論。
-      ③ 2025 年可比店僅桃園、員林、南屯三家，季節性基準取自這三家。</p>
-    <p><b>口徑訂正紀錄</b>　初版把 2025 年 6 月的一次性團購預購（桃園 330,000＋員林 220,000）
-      當成季節常態，把季節跌幅誇大近一倍（−47% vs 實際 −25.0%），經指出後剝除重算。</p>
+    <p class="confid">本頁為<b>內部報告</b>，連結未公開索引但未加密——請勿轉貼到公開場合或社群。</p>
+    <p><b>資料源</b>　11 家分店 2026 年 8 月叫貨帳＋潭子 115.08 日銷。台北信義取日記帳中的 8 月叫貨區；潭子取「8月總額」分頁淨收，該表已涵蓋蝦皮。</p>
+    <p><b>排除與校驗</b>　東區 2 筆標示「已入7月」共 22,400 排除；嘉義、東區、桃園、沙鹿的月合計公式列不重複加總；未來日期共 91,245 排除（桃園 65,865、西屯 24,506、沙鹿 874）。潭子逐日加總與工作表快取總額一致。</p>
+    <p><b>口徑限制</b>　分店叫貨額是總公司對分店的應收／庫存流，不等於分店零售業績；線性月底＝截至目前 ÷ 15 × 21，只是節奏尺。來源檔更新日不同，低數字可能同時包含未補帳。</p>
   </footer>
 </div>
 
 <!-- 純靜態頁：在 LINE 內（LIFF 容器）與一般瀏覽器都直接可讀，
      不呼叫 liff.init，與既有 cxuan-branch-order.html 慣例一致。 -->
+<script>
+  const audience = new URLSearchParams(location.search).get('audience');
+  if (audience === 'shareholder') document.getElementById('audienceStamp').textContent = '內部報告 · 股東版';
+  if (audience === 'franchisee') document.getElementById('audienceStamp').textContent = '內部報告 · 加盟主版';
+</script>
 </body>
 </html>
