@@ -130,4 +130,5 @@ function runPreflight({ payload, rows, route }) {
 }
 // CXUAN_PREFLIGHT_CORE_END
 
-module.exports = { CAP_MINOR, DEST_RE, moneyMinor, runPreflight };
+const { payload, rows, route } = input;
+return runPreflight({ payload, rows, route });

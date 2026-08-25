@@ -48,7 +48,9 @@
           { "name": "rows", "value": "{{311.array}}" },
           { "name": "route", "value": "branch" }
         ],
-        "source": "phase-a/liff-v5-preflight-reference.js#runPreflight"
+        "source": "phase-a/liff-v5-preflight-make.js",
+        "sourceSha256": "3a5656a84b86ba418fdb293963a87d1675a056fbb32ae87e6701078ad6a808b1",
+        "postPatchVerification": "GET blueprint; SHA-256 exact module 312 mapper.codeEditorJavascript bytes"
       },
       "validation": "module configuration shape valid; zero warnings"
     }
@@ -92,7 +94,7 @@
       "module": "builtin:BasicRouter",
       "routeOrder": [
         "held -> push 倉管群 + 老闆 -> respond held",
-        "over_cap -> push 原叫貨群 + 老闆 -> respond over_cap",
+        "over_cap -> push 分店叫貨群 + 老闆（可含 ΣE 與上限） -> respond safe three-field over_cap ACK",
         "stale_price -> respond stale_price",
         "pass -> existing atomic AddRecord[200]"
       ]
@@ -103,6 +105,11 @@
     "capTotalMinor": "sum(E_minor * qty)",
     "capMinor": 30000000,
     "gate": "cap and declared only when clientVersion == liff-v5; completeness all callers"
+  },
+  "overCapPushPolicy": {
+    "branchOrderGroup": "may include ΣE and capMinor; never D",
+    "ownerDirect": "may include ΣE and capMinor; never D",
+    "ack": "exactly status, orderId, capMinor"
   },
   "allowedMainChainChanges": [
     {
@@ -141,7 +148,7 @@
   ],
   "ackSchema": {
     "held": { "status": "held", "orderId": "string", "blockedItems": "array" },
-    "over_cap": { "status": "over_cap", "orderId": "string", "serverTotalMinor": "integer", "capMinor": 30000000 },
+    "over_cap": { "status": "over_cap", "orderId": "string", "capMinor": 30000000 },
     "stale_price": { "status": "stale_price", "orderId": "string", "serverTotalMinor": "integer", "declaredTotalMinor": "integer" },
     "preflight_unavailable": { "status": "preflight_unavailable", "orderId": "string" },
     "duplicate": "existing shape; semantic is NOT success",

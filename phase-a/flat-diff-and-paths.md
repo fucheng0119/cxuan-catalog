@@ -12,7 +12,7 @@
 | 312 | `code:ExecuteCode` v1 | payload、rows、route | originalItems 差集、blockedItems、minor totals、snapshot | 0 |
 | 313 | `builtin:BasicRouter` | 312 result | held → over_cap → stale_price → pass（固定優先序） | 0 |
 
-三個新 app module 的 configuration schema 已用 Make validator 驗證：`valid=true`、errors=0、warnings=0。Code 的離線唯一參考為 `phase-a/liff-v5-preflight-reference.js`，Phase C 必須把審過且 hash 固定的內容貼入 module 312，不准臨場另寫一版。
+三個新 app module 的 configuration schema 已用 Make validator 驗證：`valid=true`、errors=0、warnings=0。Module 312 的唯一貼入正本為 `phase-a/liff-v5-preflight-make.js`，登記值在 `phase-a/liff-v5-preflight-make.sha256`；Phase C 必須逐字貼入，PATCH 後 GET 回讀 `mapper.codeEditorJavascript` 並驗 SHA-256，禁止臨場改寫。`liff-v5-preflight-reference.js` 只供 Node 斷言；兩檔共同核心由離線斷言做逐位元組一致性檢查。
 
 ### 金額變數不得混用
 
@@ -21,7 +21,7 @@
 | 分店 | ΣE | ΣE |
 | 倉管 | ΣE（前端只看得到 E） | ΣD（只留後端） |
 
-因此倉管 stale_price 的 `serverTotalMinor` 是 ΣE；over_cap 的 `serverTotalMinor` 是 ΣD。D 不得出現在 HTML、payload、成功畫面或 stale_price 回應。
+因此倉管 stale_price 的 `serverTotalMinor` 是 ΣE；over_cap ACK 恰 `{status,orderId,capMinor}` 三欄，不回傳 internal `capTotalMinor`／ΣD。倉管相關群只收零金額警示；任何 ΣD 金額若需通知，只允許送老闆 1:1。D 不得出現在 HTML、payload、ACK 或任何群組訊息。
 
 ## 2. 5091914 flat-diff
 
@@ -45,12 +45,12 @@
 | [4] | `google-sheets:filterRows` limit=1 | 移除 | ② |
 | [5]/[6]/[9]/[7] | 讀 `{{4.*}}`＋舊 qty | 全改讀 [3] snapshot；[6] H 值由 `hOriginal` 保留 | ③ |
 | [106] | 判 `{{4.8}}`（I） | 判 `{{3.destinationId}}` | ④ |
-| [107]/[108] | 警示文字中的品名讀 `{{4.0}}` | **需另行核准**機械改成 `{{3.name}}` | v1.5 允許清單漏列 |
+| [107]/[108] | 警示文字中的品名讀 <code>{{4.`0`}}</code> | 機械改成 `{{3.name}}`；文字/收件人/連線/路由零改動 | ⑤ |
 | 其他 | 現況 | 零修改 | 不得動 |
 
-### Phase C 前必補的窄幅規格修正
+### v1.7 已核准之允許清單⑤
 
-live [107]/[108] 都引用將被移除的 [4]。若不改，倉管縱深 held 路徑會引用不存在的模組；若改，又超出 R10-F 明列的四類。安全解只有一個：Claude 在 PATCH 前書面增列「[107]/[108] 僅允許 `{{4.0}}→{{3.name}}` mapper 置換，文字、收件人、連線與路由不變」。本 Phase A 沒有修改 live，也沒有擅自把這項當成已核准。
+live [107]/[108] 都引用將被移除的 [4]；v1.7 已把兩個 <code>{{4.`0`}}→{{3.name}}</code> 純 mapper 置換正式列為 R10-F ⑤。此核准不包含任何文字、收件人、連線或路由變更，flat-diff 若出現其他差異仍須退件。
 
 ## 4. probe＋preflight 路徑枚舉
 
@@ -63,7 +63,7 @@ live [107]/[108] 都引用將被移除的 [4]。若不改，倉管縱深 held �
 | P5 | orderId 不存在 | mixed 一 match＋一 no_match | `held`，只列缺席 itemIndex | 1 | 0 | 0 | 倉管＋老闆 |
 | P6 | orderId 不存在 | 同 CX 兩列 | `held/multi_row` | 1 | 0 | 0 | 倉管＋老闆 |
 | P7 | orderId 不存在 | bad_qty/bad_price/empty_dest 任一或並列 | `held`，列出全部違規 | 1 | 0 | 0 | 倉管＋老闆 |
-| P8 | v5、完整性全過 | `capTotalMinor>capMinor` | `over_cap` | 1 | 0 | 0 | 原群＋老闆 |
+| P8 | v5、完整性全過 | `capTotalMinor>capMinor` | `over_cap`（ACK 恰三欄） | 1 | 0 | 0 | 分店：群＋老闆可含 ΣE；倉管：群零金額，ΣD 僅老闆 1:1 |
 | P9 | v5、完整性/cap 全過 | declared 與 live ΣE 差 1 minor | `stale_price` | 1 | 0 | 0 | 0 |
 | P10 | v4/bot/curl 無 v5 欄 | 完整性全過、但超 cap 或無 declared | `pass` 到 [200]（gate 不擋） | 1 | 依 [200] | 依主鏈 | 依主鏈 |
 | P11 | 預檢 pass | 併發另一發先搶 [200] | [200] 原子 onerror `duplicate` | 1 | 第二發 0 | 第二發 0 | 第二發 0 |
