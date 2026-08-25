@@ -82,6 +82,7 @@ function runPreflight({ payload, rows, route }) {
       itemIndex: Number.isInteger(item.itemIndex) ? item.itemIndex : fallbackIndex,
       cx: String(item.cx),
       name: String(row.A),
+      cOriginal: row.C,
       qty,
       dOriginal: row.D,
       dMinor,
@@ -94,7 +95,16 @@ function runPreflight({ payload, rows, route }) {
   });
 
   if (blockedItems.length > 0) {
-    return { status: "held", orderId: payload.orderId, blockedItems };
+    const blockedText = blockedItems
+      .map((b) => `第${b.itemIndex + 1}行 ${b.cx} ${b.name}：${b.reason}`)
+      .join("\n");
+    return {
+      status: "held",
+      orderId: payload.orderId,
+      blockedItems,
+      blockedItemsJson: JSON.stringify(blockedItems),
+      blockedText,
+    };
   }
 
   const declaredTotalMinor = snapshot.reduce((sum, item) => sum + item.eMinor * item.qty, 0);

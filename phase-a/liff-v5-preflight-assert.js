@@ -77,8 +77,8 @@ ok(
 const G = "C" + "a".repeat(32);
 const I = "R" + "b".repeat(32);
 const rows = [
-  { A: "cx1_測試商品一", D: "1,500.00", E: "1,812.5", F: "廠商甲", G, H: 2500, I },
-  { A: "cx2_測試商品二", D: 2000, E: "7,035.00", F: "廠商乙", G, H: 9000, I },
+  { A: "cx1_測試商品一", C: "總倉出貨", D: "1,500.00", E: "1,812.5", F: "廠商甲", G, H: 2500, I },
+  { A: "cx2_測試商品二", C: "廠商直寄", D: 2000, E: "7,035.00", F: "廠商乙", G, H: 9000, I },
 ];
 const payload = (items, extra = {}) => ({
   orderId: "ORD-TEST-1",
@@ -106,6 +106,7 @@ eq(branchOk.declaredTotalMinor, 362500, "分店 declared 使用 E");
 eq(branchOk.capTotalMinor, 362500, "分店 cap 使用 E");
 eq(branchOk.snapshot[0].name, "cx1_測試商品一", "主鏈使用 live 快照品名");
 eq(branchOk.snapshot[0].hOriginal, 2500, "既有中央帳 H 欄 mapper 由同一快照保留");
+eq(branchOk.snapshot[0].cOriginal, "總倉出貨", "snapshot 帶 C 欄進貨方式（[5][6] mapper 需要）");
 
 const whOk = runPreflight({
   payload: payload([{ itemIndex: 0, cx: "cx1", name: "舊名", qty: 2 }], { totalDeclaredMinor: 362500 }),
@@ -128,6 +129,8 @@ eq(noMatch.status, "held", "全 no_match 整單 held");
 eq(noMatch.blockedItems.map((x) => x.itemIndex), [4, 9], "全 no_match 以 itemIndex 完整差集");
 ok(noMatch.blockedItems.every((x) => x.reason === "no_match"), "全 no_match 原因完整");
 ok(!hasForbiddenKey(noMatch), "held 結果遞迴禁 snapshot/dOriginal/dMinor");
+eq(JSON.parse(noMatch.blockedItemsJson), noMatch.blockedItems, "blockedItemsJson 可逆序列化＝ACK 帶陣列用");
+ok(noMatch.blockedText.includes("no_match") && noMatch.blockedText.includes("第5行"), "blockedText 供 push 列項（含行序與原因）");
 
 const mixed = runPreflight({
   payload: payload([
