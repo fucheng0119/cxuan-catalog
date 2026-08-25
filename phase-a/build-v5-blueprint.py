@@ -18,7 +18,7 @@ PRICE_TAB = "建立自動化 ERP 資料庫結構"
 HELD_TEXT = ("⚠️【LIFF v5 已整單擋下・未寫帳未派單】\n🆔 {{1.orderId}}\n🏬 {{1.store}} / 👤 {{1.user}}\n"
              "原因品項：\n{{312.result.blockedText}}\n➡️ 整單未寫日誌、未記帳、未通知廠商；修正後請重新確認送出。")
 OVER_BR = ("⛔【LIFF v5 已擋下・超過分店單筆上限】\n🆔 {{1.orderId}}\n🏬 {{1.store}} / 👤 {{1.user}}\n"
-           "申報批發合計 NT${{1.totalDeclaredMinor / 100}}、上限 NT${{312.capMinor / 100}}。\n整單未寫帳、未通知廠商，請拆單後重新下單。")
+           "申報批發合計 NT${{1.totalDeclaredMinor / 100}}、上限 NT${{312.result.capMinor / 100}}。\n整單未寫帳、未通知廠商，請拆單後重新下單。")
 OVER_WH = ("⛔【LIFF v5 已擋下・超過倉管成本上限】\n🆔 {{1.orderId}}\n🏬 {{1.store}} / 👤 {{1.user}}\n"
            "本單超過總部成本上限，整單未寫帳、未通知廠商。請拆單或聯絡老闆處理。")
 

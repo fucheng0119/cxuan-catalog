@@ -38,7 +38,8 @@ const makeRunner = new Function("input", makeSource);
 
 eq(extractCore(makeSource), extractCore(referenceSource), "Make-ready 與 reference 共同核心逐位元組一致");
 ok(!makeSource.includes("module.exports"), "Make-ready 不含 module.exports");
-ok(makeSource.includes("const { payload, rows, route } = input;"), "Make-ready 從 input 取得三個輸入");
+ok(makeSource.includes("const { rows, route } = input;"), "Make-ready 從 input 取得 rows/route");
+ok(makeSource.includes("items: input.items,"), "Make-ready 逐欄重組 payload（{{1}} 整包傳遞經實測不可用）");
 ok(makeSource.includes("return runPreflight({ payload, rows, route });"), "Make-ready 以頂層 return 回傳預檢結果");
 eq(
   crypto.createHash("sha256").update(makeSource).digest("hex"),
@@ -232,7 +233,13 @@ const makeEquivalenceCases = [
   },
 ];
 for (const testCase of makeEquivalenceCases) {
-  eq(makeRunner(testCase.input), runPreflight(testCase.input), `Make-ready ${testCase.name} 與 reference 結果一致`);
+  const p = testCase.input.payload;
+  const makeInput = {
+    orderId: p.orderId, store: p.store, groupId: p.groupId, user: p.user, userId: p.userId,
+    note: p.note, clientVersion: p.clientVersion, totalDeclaredMinor: p.totalDeclaredMinor,
+    items: p.items, rows: testCase.input.rows, route: testCase.input.route,
+  };
+  eq(makeRunner(makeInput), runPreflight(testCase.input), `Make-ready ${testCase.name} 與 reference 結果一致（Make 逐欄輸入形）`);
 }
 
 console.log(`RESULT: PASS (${passed} assertions; offline preflight reference)`);
