@@ -140,5 +140,17 @@ function runPreflight({ payload, rows, route }) {
 }
 // CXUAN_PREFLIGHT_CORE_END
 
-const { payload, rows, route } = input;
+// Make 的 code 模組不支援 {{1}} 整包傳遞（實測會變成數字 1），payload 由逐欄 input 重組。
+const { rows, route } = input;
+const payload = {
+  orderId: input.orderId,
+  store: input.store,
+  groupId: input.groupId,
+  user: input.user,
+  userId: input.userId,
+  note: input.note,
+  clientVersion: input.clientVersion,
+  totalDeclaredMinor: input.totalDeclaredMinor,
+  items: input.items,
+};
 return runPreflight({ payload, rows, route });
