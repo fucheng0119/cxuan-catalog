@@ -1,0 +1,156 @@
+{
+  "kind": "cxuan.make.blueprint-diff-proposal/v1",
+  "proposalOnly": true,
+  "liveMutationForbidden": true,
+  "base": {
+    "scenarioId": 5000701,
+    "name": "LIFF 倉管訂單處理",
+    "readBackDate": "2026-08-26",
+    "scheduling": "immediately",
+    "hookId": 2278202,
+    "datastoreId": 124620,
+    "priceSpreadsheetId": "1GB9OAla1Hsxj7N036kAZcN_qVkQuwxxbBsyyhGZPCYc",
+    "priceSheet": "建立自動化 ERP 資料庫結構",
+    "priceRange": "A:I"
+  },
+  "verifiedModuleSchemas": [
+    {
+      "module": "datastore:ExistRecord",
+      "version": 1,
+      "parameters": { "datastore": 124620 },
+      "mapper": { "key": "{{1.orderId}}" },
+      "validation": "valid; zero warnings"
+    },
+    {
+      "module": "google-sheets:getSheetContent",
+      "version": 2,
+      "parameters": { "__IMTCONN__": 8017295 },
+      "mapper": {
+        "select": "map",
+        "spreadsheetId": "1GB9OAla1Hsxj7N036kAZcN_qVkQuwxxbBsyyhGZPCYc",
+        "sheetId": "建立自動化 ERP 資料庫結構",
+        "range": "A:I",
+        "includesHeaders": true,
+        "valueRenderOption": "FORMATTED_VALUE",
+        "dateTimeRenderOption": "FORMATTED_STRING"
+      },
+      "validation": "valid; zero warnings"
+    },
+    {
+      "module": "code:ExecuteCode",
+      "version": 1,
+      "parameters": {},
+      "mapperContract": {
+        "language": "javascript",
+        "inputFormat": "editor",
+        "input": [
+          { "name": "payload", "value": "{{1}}" },
+          { "name": "rows", "value": "{{311.array}}" },
+          { "name": "route", "value": "wh" }
+        ],
+        "source": "phase-a/liff-v5-preflight-reference.js#runPreflight"
+      },
+      "validation": "module configuration shape valid; zero warnings"
+    }
+  ],
+  "insertBeforeAtomicModule200": [
+    {
+      "id": 300,
+      "module": "datastore:ExistRecord",
+      "purpose": "A0 唯讀 orderId probe",
+      "routes": {
+        "exist=true": "respond 200 duplicate and stop; zero price reads, notifications, or writes",
+        "exist=false": "continue to module 310",
+        "onerror": "respond 503 preflight_unavailable and stop; zero writes"
+      }
+    },
+    {
+      "id": 310,
+      "module": "google-sheets:getSheetContent",
+      "purpose": "唯一價庫讀取 A:I；同一 execution 只讀一次"
+    },
+    {
+      "id": 311,
+      "module": "builtin:BasicAggregator",
+      "purpose": "把 A:I 列聚合為單一 rows array；判斷只使用 count，不讀空 bundle 內容"
+    },
+    {
+      "id": 312,
+      "module": "code:ExecuteCode",
+      "purpose": "originalItems/itemIndex 差集、D/E 驗證、I 驗證、minor totals、enriched snapshot"
+    },
+    {
+      "id": 313,
+      "module": "builtin:BasicRouter",
+      "routeOrder": [
+        "held -> push 倉管群 + 老闆 -> respond held",
+        "over_cap -> push 原叫貨群 + 老闆 -> respond over_cap",
+        "stale_price -> respond stale_price",
+        "pass -> existing atomic AddRecord[200]"
+      ]
+    }
+  ],
+  "moneyContract": {
+    "declaredTotalMinor": "sum(E_minor * qty); compares payload.totalDeclaredMinor because E is the only client-readable price",
+    "capTotalMinor": "sum(D_minor * qty); D never appears in payload, ACK stale response, or either HTML",
+    "capMinor": 50000000,
+    "overCapAckServerTotalMinor": "capTotalMinor (D)",
+    "stalePriceAckServerTotalMinor": "declaredTotalMinor (E)",
+    "gate": "cap and declared only when clientVersion == liff-v5; completeness all callers"
+  },
+  "allowedMainChainChanges": [
+    {
+      "moduleId": 3,
+      "path": "mapper.array",
+      "before": "{{1.items}}",
+      "after": "{{312.result.snapshot}}"
+    },
+    {
+      "moduleId": 4,
+      "change": "remove google-sheets:filterRows; module 310 is the sole read source"
+    },
+    {
+      "moduleId": 5,
+      "change": "replace every {{4.*}} and old qty reference with {{3.name/vendor/destinationId/cx/eOriginal/qty}}"
+    },
+    {
+      "moduleId": 6,
+      "change": "replace every {{4.*}} and old qty reference with snapshot fields; preserve existing H-derived ledger value through {{3.hOriginal}}"
+    },
+    {
+      "moduleId": 9,
+      "change": "destination={{3.destinationId}}, name={{3.name}}, cx={{3.cx}}, qty={{3.qty}}, displayed subtotal={{3.eOriginal * 3.qty}}"
+    },
+    {
+      "moduleId": 7,
+      "change": "aggregated line uses {{3.name}}, {{3.qty}}, {{3.vendor}}"
+    },
+    {
+      "moduleId": 106,
+      "change": "route condition reads {{3.destinationId}} from the preflight snapshot; valid route remains defense-in-depth"
+    }
+  ],
+  "specAmendmentRequiredBeforePhaseC": [
+    {
+      "issue": "Live modules 107 and 108 interpolate {{4.*}}, but R10-F removes module 4 and only allows mapper rewrites for 5/6/9/7 plus condition 106.",
+      "safeResolution": "Authorize the two mechanical mapper-only rewrites {{4.`0`}} -> {{3.name}} in modules 107 and 108, with no text, route, connection, or recipient change.",
+      "reason": "Otherwise the preserved defense-in-depth held route references a removed module and is not safely executable. No live PATCH is permitted until Claude records this narrow amendment."
+    }
+  ],
+  "mustRemainByteEquivalent": [
+    "module 1 webhook",
+    "module 200 AddRecord and complete onerror duplicate/Break tree",
+    "modules 8, 201, 202 and all warning recipients/text except explicitly approved snapshot mapper substitutions",
+    "all sheet IDs, LINE connection IDs, hook IDs, labels, scheduling",
+    "ORD UTC/orderId behavior"
+  ],
+  "ackSchema": {
+    "held": { "status": "held", "orderId": "string", "blockedItems": "array" },
+    "over_cap": { "status": "over_cap", "orderId": "string", "serverTotalMinor": "integer D total", "capMinor": 50000000 },
+    "stale_price": { "status": "stale_price", "orderId": "string", "serverTotalMinor": "integer E total", "declaredTotalMinor": "integer E total" },
+    "preflight_unavailable": { "status": "preflight_unavailable", "orderId": "string" },
+    "duplicate": "existing shape; semantic is NOT success",
+    "ok": "existing shape; only success status"
+  },
+  "rollback": "Claude must GET and save full before blueprint immediately before any Phase C PATCH; this proposal is not a rollback file"
+}
