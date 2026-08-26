@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>澄軒倉管</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif}
+html,body{height:100%;background:#f0f2f5}
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.header{background:linear-gradient(135deg,#854d0e,#a16207);color:#fff;padding:12px 14px 14px;flex-shrink:0;padding-top:env(safe-area-inset-top, 12px)}
+.header-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.title{flex:1;font-size:17px;font-weight:700}
+.close{font-size:20px;cursor:pointer;opacity:.85}
+.user-info{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.18);padding:8px 12px;border-radius:8px;font-size:12px}
+.user-info b{font-size:14px}
+
+.search-bar{padding:8px 12px;background:#fff;flex-shrink:0;border-bottom:1px solid #eee}
+.search-bar input{width:100%;padding:9px 14px;border:1px solid #ddd;border-radius:20px;font-size:13px;outline:none;background:#f7f8fa}
+.search-bar input:focus{border-color:#a16207;background:#fff}
+
+.cat-tabs{display:flex;background:#fff;padding:0 6px;flex-shrink:0;border-bottom:1px solid #eee;gap:4px;overflow-x:auto}
+.cat-tab{padding:8px 12px;font-size:12px;color:#666;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;font-weight:500}
+.cat-tab.active{color:#a16207;border-bottom-color:#a16207;font-weight:600}
+
+.tabs-bar{flex-shrink:0;display:flex;background:#fff;border-top:1px solid #eee;height:54px}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;color:#999;font-size:10px;position:relative}
+.tab-item.active{color:#a16207}
+.tab-item.active::after{content:"";position:absolute;bottom:0;left:20%;right:20%;height:2px;background:#a16207}
+.tab-item .icon{font-size:20px}
+.tab-item .badge{position:absolute;background:#ff4d4f;color:#fff;font-size:9px;border-radius:8px;padding:0 4px;top:5px;right:18%}
+
+.scroll-area{flex:1;overflow-y:auto;padding:10px;background:#f0f2f5;-webkit-overflow-scrolling:touch;min-height:0}
+
+.view{display:none;flex-direction:column;min-height:0}
+.view.active{display:flex;flex:1;min-height:0}
+
+.product-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:7px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.product-card.in-cart{border:1.5px solid #a16207}
+.p-row1{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px}
+.p-icon{width:38px;height:38px;border-radius:8px;background:#fef9c3;color:#854d0e;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.p-info{flex:1;min-width:0}
+.p-cx{font-size:10px;color:#a16207;font-weight:600}
+.p-name{font-size:13px;color:#222;font-weight:500;line-height:1.3;margin-top:1px}
+.p-vendor{font-size:10px;color:#999;margin-top:2px}
+.p-price{display:flex;justify-content:space-between;background:#f7f8fa;border-radius:6px;padding:5px 9px;margin-bottom:6px;font-size:11px}
+.p-price b{color:#444;font-weight:600}
+.p-actions{display:flex;justify-content:flex-end;align-items:center;gap:4px;flex-wrap:wrap}
+.qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid #a16207;background:#fff;color:#a16207;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.qty-btn.minus{visibility:hidden}
+.product-card.in-cart .qty-btn.minus{visibility:visible}
+.qty-input{width:54px;text-align:center;font-size:15px;font-weight:700;color:#a16207;border:1.5px solid #a16207;border-radius:6px;padding:4px 2px;background:#fff;-moz-appearance:textfield}
+.qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.qty-btn.ten,.qty-btn.fifty{width:auto;min-width:34px;padding:0 6px;font-size:11px;border-color:#a16207;background:#fef9c3;color:#854d0e;font-weight:700}
+.qty-btn.ten:hover,.qty-btn.fifty:hover{background:#a16207;color:#fff}
+.product-card:not(.in-cart) .qty-input{display:none}
+.add-btn{padding:5px 12px;border-radius:5px;background:#a16207;color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.product-card.in-cart .add-btn{background:#15803d;color:#fff;cursor:default;font-size:11px;padding:5px 10px}
+.product-card.in-cart .add-btn::before{content:"✓ 已加入"}
+
+.cart-bar{flex-shrink:0;background:#fff;border-top:1px solid #eee;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.cart-icon{position:relative;font-size:20px}
+.cart-badge{position:absolute;top:-4px;right:-6px;background:#ff4d4f;color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center}
+.cart-text{flex:1;font-size:12px;color:#444}
+.cart-text b{color:#222;font-size:13px}
+.send-btn{padding:9px 18px;background:#a16207;color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer}
+.send-btn:disabled{background:#ccc}
+
+.task-card{background:#fff;border-radius:10px;padding:11px;margin-bottom:8px;border-left:4px solid #a16207}
+.task-card.urgent{border-left-color:#ff4d4f}
+.task-card.done{border-left-color:#52c41a;opacity:.75}
+.task-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.task-id{font-size:11px;color:#999;font-family:Menlo,monospace}
+.task-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px}
+.task-status.待入庫{background:#fff7e6;color:#a16207}
+.task-status.待出貨{background:#e0f2fe;color:#0369a1}
+.task-status.已出貨{background:#f6ffed;color:#52c41a}
+.task-vendor{font-size:12px;color:#666;margin-bottom:6px}
+.task-items{font-size:12px;color:#444;line-height:1.7;padding:7px 9px;background:#fafbfc;border-radius:6px;margin-bottom:6px}
+.task-act{display:flex;gap:5px;margin-top:8px}
+.task-act button{flex:1;padding:8px;border-radius:6px;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.btn-primary{background:#a16207;color:#fff}
+.btn-secondary{background:#fff;color:#a16207;border:1px solid #a16207 !important}
+
+.month-card{background:linear-gradient(135deg,#854d0e,#a16207);color:#fff;border-radius:12px;padding:13px;margin-bottom:10px}
+.month-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.stat{background:rgba(255,255,255,.18);border-radius:8px;padding:8px}
+.stat .lbl{font-size:11px;opacity:.85}
+.stat .val{font-size:17px;font-weight:700;margin-top:2px}
+
+.inv-card{background:#fff;border-radius:10px;padding:10px;margin-bottom:7px;border:1px solid #eee}
+.inv-r1{display:flex;gap:8px;align-items:flex-start;margin-bottom:5px}
+.stock-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.s-block{background:#f7f8fa;border-radius:6px;padding:7px;text-align:center}
+.s-block.reserved{background:#fff7e6}
+.s-block.available{background:#f6ffed}
+.s-block.danger{background:#fee2e2}
+.s-lbl{font-size:9px;color:#888}
+.s-val{font-size:14px;font-weight:700;margin-top:2px}
+.s-val.warning{color:#92400e}
+.s-val.danger{color:#b91c1c}
+.s-val.good{color:#15803d}
+
+.qty-modal-content{background:#fff;width:100%;max-width:420px;border-radius:18px 18px 0 0;padding:18px 14px;animation:slideUp .25s ease-out}
+.qty-modal-content h3{font-size:15px;color:#222;margin-bottom:10px;text-align:center}
+.qty-display{background:#fef9c3;border:2px solid #a16207;border-radius:10px;padding:14px;text-align:center;font-size:32px;font-weight:700;color:#854d0e;margin-bottom:10px;font-family:Menlo,monospace}
+.qty-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px}
+.qty-quick button{padding:9px;border-radius:7px;border:1px solid #a16207;background:#fff;color:#a16207;font-size:13px;font-weight:600;cursor:pointer}
+.qty-quick button:active{background:#a16207;color:#fff}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px}
+.numpad button{padding:14px;border-radius:8px;border:1px solid #ddd;background:#f7f8fa;font-size:18px;font-weight:600;cursor:pointer;color:#222}
+.numpad button:active{background:#a16207;color:#fff}
+.qty-modal-actions{display:flex;gap:8px;margin-top:10px}
+.qty-modal-actions button{flex:1;padding:11px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:50;touch-action:none}
+.modal-bg .modal,.modal-bg .qty-modal-content{touch-action:auto}
+.modal-bg.show{display:flex}
+.modal{background:#fff;width:100%;max-width:520px;max-height:88%;border-radius:18px 18px 0 0;padding:16px;overflow-y:auto;animation:slideUp .25s ease-out}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-size:16px;margin-bottom:12px;color:#222}
+.modal .field{margin-bottom:10px}
+.modal label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.modal input,.modal textarea{width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit}
+.modal textarea{resize:vertical;min-height:50px}
+.cart-list{background:#f7f8fa;border-radius:6px;padding:9px;font-size:11px;line-height:1.7;max-height:200px;overflow-y:auto}
+.confirm-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:12px;gap:8px}
+.confirm-item:last-child{border-bottom:none}
+.ci-info{flex:1;min-width:0;color:#222}
+.ci-info b{color:#a16207}
+.ci-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
+.ci-btn{width:24px;height:24px;border-radius:50%;border:1.5px solid #a16207;background:#fff;color:#a16207;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0}
+.ci-btn:active{background:#a16207;color:#fff}
+.ci-qty{min-width:32px;text-align:center;font-size:13px;font-weight:700;color:#a16207}
+.ci-del{width:24px;height:24px;border-radius:50%;border:1.5px solid #ff4d4f;background:#fff;color:#ff4d4f;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:0;padding:0;margin-left:4px}
+.ci-del:active{background:#ff4d4f;color:#fff}
+.cart-list b{color:#a16207}
+.modal-actions{display:flex;gap:6px;margin-top:12px}
+.modal-actions button{flex:1;padding:9px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-cancel{background:#eee;color:#666}
+.btn-confirm{background:#a16207;color:#fff}
+.btn-danger{background:#b91c1c;color:#fff}
+.btn-secondary{background:#fff7ed;color:#9a3412;border:1px solid #fdba74!important}
+.order-id{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:7px;padding:8px 10px;font:600 12px Menlo,monospace;word-break:break-all}
+.confirm-item{align-items:flex-start}
+.ci-info{overflow-wrap:anywhere;white-space:normal}
+.ci-money{display:block;color:#666;font-size:11px;margin-top:3px}
+.confirm-total{display:flex;justify-content:space-between;align-items:center;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:9px 10px;font-size:13px;font-weight:700;color:#92400e}
+.status-panel{border-radius:8px;padding:10px;font-size:12px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.status-warning{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412}
+.status-danger{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.status-success{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+.blocked-list{margin:7px 0 0 18px}
+
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#fff;color:#a16207;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);font-size:13px;font-weight:600;z-index:100;display:none;border:1.5px solid #a16207;max-width:90%}
+.toast.show{display:block}
+
+.loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:10px}
+.loading.hide{display:none}
+.spinner{width:32px;height:32px;border:3px solid #f0f2f5;border-top-color:#a16207;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <div style="color:#666;font-size:13px">LIFF 載入中...</div>
+</div>
+
+<div class="header">
+  <div class="header-top">
+    <span class="title">📦 澄軒倉管</span>
+    <span class="close" onclick="liff.closeWindow()">✕</span>
+  </div>
+  <div class="user-info">
+    <span>🏭 中部倉</span>
+    <span id="user-greeting">👤 載入中…</span>
+  </div>
+</div>
+
+<!-- 訂貨 view -->
+<div class="view active" id="view-order">
+  <div class="search-bar"><input id="search" type="text" placeholder="🔍 搜尋商品 / cx 編號"></div>
+  <div class="cat-tabs" id="cat-tabs">
+    <div class="cat-tab active" data-cat="hot">🔥 常買</div>
+    <div class="cat-tab" data-cat="all">全部</div>
+    <!-- 廠商分類 tab 由 renderVendorTabs() 動態注入（依商品數量 desc 排序） -->
+  </div>
+  <div class="scroll-area" id="products"></div>
+  <div class="cart-bar">
+    <div class="cart-icon">🛒<span class="cart-badge" id="cart-count">0</span></div>
+    <div class="cart-text"><span id="cart-text">購物車是空的</span></div>
+    <button class="send-btn" id="send-btn" disabled onclick="openConfirm()">送出</button>
+  </div>
+</div>
+
+<!-- 任務 view -->
+<div class="view" id="view-tasks">
+  <div class="scroll-area" id="tasks-list"></div>
+</div>
+
+<!-- 庫存 view -->
+<div class="view" id="view-inventory">
+  <div class="scroll-area" id="inventory-list"></div>
+</div>
+
+<!-- 歷史 view -->
+<div class="view" id="view-history">
+  <div class="scroll-area" id="history-list"></div>
+</div>
+
+<!-- bottom nav -->
+<div class="tabs-bar">
+  <div class="tab-item active" onclick="switchTab('order')"><span class="icon">🛒</span><span>訂貨</span></div>
+  <div class="tab-item" onclick="switchTab('tasks')"><span class="icon">📦</span><span>任務</span><span class="badge">3</span></div>
+  <div class="tab-item" onclick="switchTab('inventory')"><span class="icon">📊</span><span>庫存</span></div>
+  <div class="tab-item" onclick="switchTab('history')"><span class="icon">📋</span><span>歷史</span></div>
+</div>
+
+<div class="modal-bg" id="qty-modal" onclick="if(event.target===this) closeQtyModal()">
+  <div class="qty-modal-content">
+    <h3 id="qty-modal-title">設定數量</h3>
+    <div class="qty-display"><span id="qty-display-val">0</span></div>
+    <div class="qty-quick">
+      <button onclick="qtyOp('clear')">清除</button>
+      <button onclick="qtyOp(-50)">-50</button>
+      <button onclick="qtyOp(-10)">-10</button>
+      <button onclick="qtyOp(-1)">-1</button>
+    </div>
+    <div class="qty-quick">
+      <button onclick="qtyOp(1)">+1</button>
+      <button onclick="qtyOp(10)">+10</button>
+      <button onclick="qtyOp(50)">+50</button>
+      <button onclick="qtyOp(100)">+100</button>
+    </div>
+    <div class="numpad">
+      <button onclick="qtyDigit(1)">1</button>
+      <button onclick="qtyDigit(2)">2</button>
+      <button onclick="qtyDigit(3)">3</button>
+      <button onclick="qtyDigit(4)">4</button>
+      <button onclick="qtyDigit(5)">5</button>
+      <button onclick="qtyDigit(6)">6</button>
+      <button onclick="qtyDigit(7)">7</button>
+      <button onclick="qtyDigit(8)">8</button>
+      <button onclick="qtyDigit(9)">9</button>
+      <button onclick="qtyOp('back')">⌫</button>
+      <button onclick="qtyDigit(0)">0</button>
+      <button onclick="qtyOp('00')">00</button>
+    </div>
+    <div class="qty-modal-actions">
+      <button class="btn-cancel" onclick="closeQtyModal()">取消</button>
+      <button class="btn-confirm" onclick="commitQty()">✓ 確定</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">確認訂單</h3>
+    <div id="modal-content"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✅ 已記錄</div>
+
+<script>
+const LIFF_ID = "2009990533-AwFHHdvo";
+// 指寄群支援(2026-07-22)：在「潭子業務指寄直通廠商群」開此表單=自動歸潭子帳(訂單號 ORD-指寄-…)；
+// 也可用 ?store= 參數手動覆蓋；其餘情境照舊=中部倉(倉管群零影響)。
+const STORE_BY_GROUP = { 'Cb7c923a5177ebc313074092e03e86169': '潭子總倉店' };
+function resolveStore() {
+  const q = new URLSearchParams(location.search).get('store');
+  if (q) return q;
+  try {
+    const ctx = liff.getContext();
+    if (ctx && ctx.groupId && STORE_BY_GROUP[ctx.groupId]) return STORE_BY_GROUP[ctx.groupId];
+  } catch (e) {}
+  return '中部倉';
+}
+let userProfile = null;
+
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    userProfile = await liff.getProfile();
+    document.getElementById('user-greeting').innerHTML = `👤 ${userProfile.displayName}`;
+    document.getElementById('loading').classList.add('hide');
+    console.log('🎯 LIFF Profile:', userProfile);
+  } catch (err) {
+    console.error('LIFF init error:', err);
+    document.getElementById('user-greeting').innerHTML = `⚠️ LIFF 載入失敗`;
+    document.getElementById('loading').classList.add('hide');
+  }
+}
+initLiff();
+
+// 商品（cx 短碼 + 真實名 + 廠商 + 進貨價 + 售價）
+// 商品 — dynamic fetch from GAS Web App + localStorage cache 1hr
+let products = [];
+const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7mnOC5sJvBCwH02Tb1TP6CJJed-8FwDx0Id9UArzQKYk2E5zbg7gA/exec?action=products';
+const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
+const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hr
+const CLIENT_VERSION = 'liff-v5';
+const WAREHOUSE_CAP_MINOR = 50000000;
+const WAREHOUSE_WEBHOOK_URL = 'https://hook.us2.make.com/1cddewqpygfk1d0tolswdporc2wdp0ur';
+const PENDING_STORAGE_KEY = 'cxuan_warehouse_pending_v5';
+const AUDIT_STORAGE_KEY = 'cxuan_warehouse_audit_v5';
+const AUDIT_MAX = 100;
+const AUDIT_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+// 2026-08-04：3M／舒萬諾合作未成立，從 LIFF 下架該供應線。
+// 只擋主供應商為 3M／舒萬諾的商品；盛智_3m商用與家享 3m 零件仍可叫貨。
+const RETIRED_SOLVENTUM_VENDORS = new Set([
+  '3m', '3m舒萬諾', '舒萬諾', '台灣舒萬諾股份有限公司', 'solventum'
+]);
+function isRetiredSolventumProduct(p) {
+  const primaryVendor = String((p && p.vendor) || '')
+    .split('/')[0].trim().replace(/\s+/g, '').toLowerCase();
+  return RETIRED_SOLVENTUM_VENDORS.has(primaryVendor);
+}
+function filterOrderableProducts(items) {
+  return (Array.isArray(items) ? items : []).filter(
+    p => p && p.vendor && Number.isFinite(normalizeMoney(p.cost)) && !isRetiredSolventumProduct(p)
+  );
+}
+
+async function loadProducts() {
+  // Try fresh cache first (avoid hitting GAS too often)
+  try {
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      const age = Date.now() - obj.time;
+      if (age < PRODUCTS_CACHE_TTL_MS && Array.isArray(obj.products) && obj.products.length > 0) {
+        products = filterOrderableProducts(obj.products);
+        console.log('[products] cache hit:', products.length, 'items, age', Math.round(age/1000)+'s');
+        return;
+      }
+    }
+  } catch (e) { console.warn('[products] cache parse fail', e); }
+
+  // Fetch fresh
+  console.log('[products] fetching fresh from API...');
+  try {
+    const resp = await fetch(PRODUCTS_API, { redirect: 'follow' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (!data.products) throw new Error('bad response: ' + JSON.stringify(data).slice(0,200));
+    // Filter out incomplete rows (no vendor or 0 cost)
+    products = filterOrderableProducts(data.products);
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: products, time: Date.now() }));
+    console.log('[products] fetched fresh:', products.length, 'items (filtered from', data.products.length+')');
+  } catch (err) {
+    console.error('[products] fetch failed:', err);
+    // Fallback to stale cache
+    try {
+      const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+      if (raw) {
+        const obj = JSON.parse(raw);
+        if (Array.isArray(obj.products) && obj.products.length > 0) {
+          products = filterOrderableProducts(obj.products);
+          console.warn('[products] using stale cache fallback:', products.length, 'items');
+          if (typeof showToast === 'function') showToast('⚠️ 離線模式：使用快取資料');
+          return;
+        }
+      }
+    } catch (_) {}
+    if (typeof showToast === 'function') showToast('❌ 商品載入失敗：' + err.message);
+    products = [];
+  }
+}
+
+function normalizeMoney(value) {
+  const raw = String(value ?? '').replace(/,/g, '').trim();
+  if (!raw || !/^\d+(?:\.\d{1,2})?$/.test(raw)) return NaN;
+  const number = Number(raw);
+  return Number.isFinite(number) && number > 0 ? number : NaN;
+}
+
+function moneyToMinor(value) {
+  const number = normalizeMoney(value);
+  if (!Number.isFinite(number)) throw new Error('bad_price');
+  const minor = Math.round(number * 100);
+  if (Math.abs(number * 100 - minor) >= 1e-6) throw new Error('bad_price');
+  return minor;
+}
+
+function formatMinor(minor) {
+  return (minor / 100).toLocaleString('zh-TW', {
+    minimumFractionDigits: minor % 100 ? 2 : 0,
+    maximumFractionDigits: 2
+  });
+}
+
+function cartTotalMinor() {
+  return Object.entries(cart).reduce((sum, [cx, qty]) => {
+    const p = products.find(x => x.cx === cx);
+    return sum + (p ? moneyToMinor(p.cost) * qty : 0);
+  }, 0);
+}
+
+async function fetchFreshProducts() {
+  const resp = await fetch(PRODUCTS_API, { redirect: 'follow', cache: 'no-store' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const data = await resp.json();
+  if (!Array.isArray(data.products)) throw new Error('bad response');
+  const fresh = filterOrderableProducts(data.products);
+  if (!fresh.length) throw new Error('empty products');
+  return fresh;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[ch]);
+}
+const HOT_CX = new Set(["cx476", "cx100", "cx223", "cx7", "cx217", "cx209", "cx208", "cx377", "cx218", "cx8", "cx475", "cx224", "cx226", "cx478", "cx477", "cx128", "cx356", "cx213", "cx40", "cx221", "cx474", "cx207", "cx357", "cx5", "cx232", "cx222", "cx212"]);
+
+const cart = {};
+let draftNote = '';
+let pendingSnapshot = null;
+
+// Mock 任務 / 庫存 / 歷史 (省略沒影響訂貨流程)
+const whTasks = [
+  {id:'WH-260507-001', orderId:'ORD-潭子-260507-094521', vendor:'漢岱', store:'潭子店', status:'待入庫', urgent:true,
+   expected:[{cx:'cx475', name:'SR-1410HSS', qty:2}], note:'廠商已批，今下午到'},
+  {id:'WH-260506-002', orderId:'ORD-員林-260506-094512', vendor:'葦翔', store:'員林店', status:'待出貨',
+   expected:[{cx:'cx5', name:'PP 濾芯', qty:10}], note:'已入庫'},
+];
+const inventoryData = [
+  {cx:'cx475', name:'舒沛優SR-1410HSS', vendor:'漢岱', stock:8, reserved:2},
+  {cx:'cx478', name:'舒沛優SR-1410 ACP', vendor:'漢岱', stock:24, reserved:5},
+  {cx:'cx5', name:'10英吋 PP 濾芯', vendor:'葦翔', stock:340, reserved:48},
+];
+
+// ============= 訂貨頁 =============
+function renderProducts(category='hot', search='') {
+  const list = document.getElementById('products');
+  let html = '';
+  let filtered = products.filter(p => {
+    if (search) {
+      const s = search.toLowerCase();
+      return p.cx.toLowerCase().includes(s) || p.name.toLowerCase().includes(s) || (p.vendor||'').toLowerCase().includes(s);
+    }
+    if (category === 'all') return true;
+    if (category === 'hot') return HOT_CX.has(p.cx);
+    if (category.startsWith('v:')) return p.vendor === category.slice(2);
+    return false;
+  });
+  if (category === 'hot' && !search) {
+    html = `<div style="font-size:11px;color:#888;padding:6px 4px;font-weight:600">🔥 倉管常買 (${filtered.length})</div>`;
+  }
+  filtered.forEach(p => {
+    const inCart = cart[p.cx] > 0;
+    html += `
+    <div class="product-card${inCart ? ' in-cart' : ''}">
+      <div class="p-row1">
+        <div class="p-icon">${p.cx}</div>
+        <div class="p-info">
+          <div class="p-cx">${p.cx}</div>
+          <div class="p-name">${p.name}</div>
+          <div class="p-vendor">📦 ${p.vendor}</div>
+        </div>
+      </div>
+      <div class="p-price">
+        <span>進 <b>$${p.cost.toLocaleString()}</b></span>
+        <span>售 <b style="color:#fa541c">$${p.retail.toLocaleString()}</b></span>
+      </div>
+      <div class="p-actions">
+        <button class="qty-btn minus" onclick="changeQty('${p.cx}',-1)">−</button>
+        <input class="qty-input" type="text" readonly value="${cart[p.cx] || 0}" 
+               onclick="openQtyModal('${p.cx}')" 
+               ${inCart ? '' : 'style="display:none"'} />
+        <button class="qty-btn plus" onclick="changeQty('${p.cx}',1)" ${inCart ? '' : 'style="display:none"'}>+</button>
+        <button class="qty-btn ten" onclick="changeQty('${p.cx}',10)" ${inCart ? '' : 'style="display:none"'} title="+10">+10</button>
+        <button class="qty-btn fifty" onclick="changeQty('${p.cx}',50)" ${inCart ? '' : 'style="display:none"'} title="+50">+50</button>
+        <button class="add-btn" onclick="${inCart ? '' : `changeQty(\'${p.cx}\',1)`}">${inCart ? '' : '加入'}</button>
+      </div>
+    </div>`;
+  });
+  if (filtered.length === 0) {
+    html += '<div style="text-align:center;color:#999;padding:40px;font-size:13px">😅 找不到商品</div>';
+  }
+  list.innerHTML = html;
+}
+
+function setQty(cx, value) {
+  value = Math.min(999, Math.max(0, Number(value) || 0));
+  if (value <= 0) delete cart[cx];
+  else cart[cx] = value;
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+// ============= 自製數字鍵盤 (避開 iOS 鍵盤 bug) =============
+let qtyModalCx = null;
+let qtyModalValue = 0;
+
+function openQtyModal(cx) {
+  qtyModalCx = cx;
+  qtyModalValue = cart[cx] || 0;
+  const p = products.find(x => x.cx === cx);
+  document.getElementById('qty-modal-title').textContent = `${cx} ${p ? p.name : ''}`;
+  updateQtyDisplay();
+  document.getElementById('qty-modal').classList.add('show');
+}
+
+function closeQtyModal() {
+  document.getElementById('qty-modal').classList.remove('show');
+  // 強制清掉可能殘留的 inline style
+  document.getElementById('qty-modal').style.cssText = '';
+  qtyModalCx = null;
+  // 確保 body 沒被 lock
+  document.body.style.overflow = '';
+}
+
+function updateQtyDisplay() {
+  document.getElementById('qty-display-val').textContent = qtyModalValue;
+}
+
+function qtyDigit(d) {
+  // 把 d 接到 value 後（取代或追加）
+  qtyModalValue = qtyModalValue * 10 + d;
+  if (qtyModalValue > 999) qtyModalValue = 999;
+  updateQtyDisplay();
+}
+
+function qtyOp(op) {
+  if (op === 'clear') qtyModalValue = 0;
+  else if (op === 'back') qtyModalValue = Math.floor(qtyModalValue / 10);
+  else if (op === '00') qtyModalValue = qtyModalValue * 100;
+  else qtyModalValue = Math.max(0, qtyModalValue + op);
+  if (qtyModalValue > 999) qtyModalValue = 999;
+  updateQtyDisplay();
+}
+
+function commitQty() {
+  if (qtyModalCx) setQty(qtyModalCx, qtyModalValue);
+  closeQtyModal();
+}
+
+function changeQty(cx, delta) {
+  cart[cx] = Math.min(999, (cart[cx] || 0) + delta);
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, document.getElementById('search').value);
+}
+
+function updateCart() {
+  const items = Object.entries(cart);
+  const count = items.reduce((s, [, q]) => s + q, 0);
+  let totalMinor = 0;
+  try { totalMinor = cartTotalMinor(); } catch (_) {}
+  document.getElementById('cart-count').textContent = count;
+  document.getElementById('cart-text').innerHTML = count > 0
+    ? `<b>${count}</b> 件 · 批 $<b>${formatMinor(totalMinor)}</b>`
+    : '購物車是空的';
+  document.getElementById('send-btn').disabled = count === 0 || !!(pendingSnapshot && ['unknown','needs_reconciliation'].includes(pendingSnapshot.state));
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  const activeTab = document.querySelector('.cat-tab.active').dataset.cat;
+  renderProducts(activeTab, e.target.value);
+});
+// 用 event delegation：tab 是動態注入的，每次重新生成都還能 work
+document.getElementById('cat-tabs').addEventListener('click', e => {
+  const t = e.target.closest('.cat-tab');
+  if (!t) return;
+  document.querySelectorAll('.cat-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  renderProducts(t.dataset.cat, document.getElementById('search').value);
+});
+
+// ============= 動態 vendor 分類 tab =============
+function renderVendorTabs() {
+  const counts = {};
+  products.forEach(p => {
+    const v = (p.vendor || '').trim();
+    if (!v) return;
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const container = document.getElementById('cat-tabs');
+  // 更新「全部」tab 的計數
+  const allTab = container.querySelector('.cat-tab[data-cat="all"]');
+  if (allTab) allTab.textContent = `全部 (${products.length})`;
+  // 清掉舊的 vendor tab（保留 🔥 常買 + 全部）
+  container.querySelectorAll('.cat-tab[data-cat^="v:"]').forEach(el => el.remove());
+  // 注入排序後的 vendor tabs
+  sorted.forEach(([v, n]) => {
+    const el = document.createElement('div');
+    el.className = 'cat-tab';
+    el.dataset.cat = 'v:' + v;
+    el.textContent = `${v} (${n})`;
+    container.appendChild(el);
+  });
+}
+
+let submitting = false, pendingOrderId = null;
+
+function makeOrderId() {
+  const store = resolveStore();
+  const now = new Date();
+  return 'ORD-' + (store === '中部倉' ? '中部倉' : '指寄') + '-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + now.toTimeString().slice(0, 8).replace(/:/g, '');
+}
+
+function captureDraftNote() {
+  const note = document.getElementById('note');
+  if (note) draftNote = note.value;
+}
+
+function buildOrderItems() {
+  return Object.entries(cart).map(([cx, qty], itemIndex) => {
+    const p = products.find(x => x.cx === cx);
+    if (!p || !Number.isInteger(qty) || qty < 1 || qty > 999) throw new Error('bad_item');
+    return { itemIndex, cx, name: p.name, qty, vendor: p.vendor, unitPriceMinor: moneyToMinor(p.cost) };
+  });
+}
+
+function buildPayload() {
+  return {
+    orderId: pendingOrderId,
+    store: resolveStore(),
+    user: userProfile ? userProfile.displayName : '(unknown)',
+    userId: userProfile ? userProfile.userId : '(unknown)',
+    note: draftNote,
+    clientVersion: CLIENT_VERSION,
+    totalDeclaredMinor: cartTotalMinor(),
+    items: buildOrderItems()
+  };
+}
+
+function savePending(snapshot) {
+  pendingSnapshot = snapshot;
+  pendingOrderId = snapshot.orderId;
+  localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(snapshot));
+  updateCart();
+}
+
+function clearPending() {
+  pendingSnapshot = null;
+  pendingOrderId = null;
+  localStorage.removeItem(PENDING_STORAGE_KEY);
+  updateCart();
+}
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(hash)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function writeAudit(action, status, serializedPayload) {
+  try {
+    const now = Date.now();
+    const raw = localStorage.getItem(AUDIT_STORAGE_KEY);
+    const old = raw ? JSON.parse(raw) : [];
+    const rows = (Array.isArray(old) ? old : []).filter(x => Number(x.ts) >= now - AUDIT_TTL_MS);
+    rows.push({ orderId: pendingOrderId || JSON.parse(serializedPayload).orderId, payloadHash: await sha256(serializedPayload), action, status, ts: now });
+    localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(rows.slice(-AUDIT_MAX)));
+  } catch (err) { console.warn('audit write failed', err); }
+}
+
+function confirmItemsHtml(payload, editable) {
+  return payload.items.map(item => {
+    const p = products.find(x => x.cx === item.cx);
+    const unitMinor = Number.isInteger(item.unitPriceMinor) ? item.unitPriceMinor : (p ? moneyToMinor(p.cost) : 0);
+    return `<div class="confirm-item">
+      <span class="ci-info"><b>${escapeHtml(item.cx)}</b> ${escapeHtml(item.name)}
+        <span class="ci-money">單價 $${formatMinor(unitMinor)} · 小計 $${formatMinor(unitMinor * item.qty)}</span>
+      </span>
+      <span class="ci-ctrl">${editable ? `
+        <button class="ci-btn" onclick="confirmAdjust('${escapeHtml(item.cx)}',-1)">−</button>
+        <span class="ci-qty">${item.qty}</span>
+        <button class="ci-btn" onclick="confirmAdjust('${escapeHtml(item.cx)}',1)">+</button>
+        <button class="ci-del" onclick="confirmRemove('${escapeHtml(item.cx)}')">✕</button>` : `<span class="ci-qty">×${item.qty}</span>`}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function renderConfirmModal() {
+  if (!Object.keys(cart).length) return;
+  if (!pendingOrderId) pendingOrderId = makeOrderId();
+  const payload = buildPayload();
+  document.getElementById('modal-title').textContent = '確認訂單（尚未送出）';
+  document.getElementById('modal-content').innerHTML = `
+    <div class="field"><label>訂單編號</label><div class="order-id">${escapeHtml(payload.orderId)}</div></div>
+    <div class="field"><label>叫貨單位</label><input value="🏭 ${escapeHtml(payload.store)}" readonly style="background:#f7f8fa"></div>
+    <div class="field"><label>備註（逐字送出）</label><textarea id="note" placeholder="例：急件、客戶指寄...">${escapeHtml(draftNote)}</textarea></div>
+    <div class="field"><label>本次訂單品項</label><div class="cart-list">${confirmItemsHtml(payload, true)}</div></div>
+    <div class="confirm-total"><span>批發合計（E）</span><span>$${formatMinor(payload.totalDeclaredMinor)}</span></div>
+    <div class="status-panel status-warning" style="margin-top:8px">送出時系統以總部成本 Σ≤50 萬自動檢核；總部成本不會顯示在此頁。</div>`;
+  document.getElementById('modal-actions').innerHTML = '<button class="btn-cancel" onclick="closeModal()">返回</button><button class="btn-confirm" onclick="submitOrder()">✓ 重抓價庫後送出</button>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function openConfirm() {
+  if (pendingSnapshot && ['unknown','sending','needs_reconciliation'].includes(pendingSnapshot.state)) { showPendingState(); return; }
+  captureDraftNote();
+  renderConfirmModal();
+}
+
+function confirmAdjust(cx, delta) {
+  if (pendingSnapshot && ['unknown','sending','needs_reconciliation'].includes(pendingSnapshot.state)) return;
+  captureDraftNote();
+  cart[cx] = Math.min(999, (cart[cx] || 0) + delta);
+  if (cart[cx] <= 0) delete cart[cx];
+  updateCart();
+  if (!Object.keys(cart).length) { closeModal(); showToast('購物車清空'); }
+  else renderConfirmModal();
+  renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+}
+
+function confirmRemove(cx) {
+  if (pendingSnapshot && ['unknown','sending','needs_reconciliation'].includes(pendingSnapshot.state)) return;
+  captureDraftNote();
+  delete cart[cx];
+  updateCart();
+  if (!Object.keys(cart).length) { closeModal(); showToast('購物車清空'); }
+  else renderConfirmModal();
+  renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+}
+
+function closeModal() {
+  captureDraftNote();
+  document.getElementById('modal').classList.remove('show');
+}
+
+async function refreshBeforeSubmit() {
+  const before = new Map(products.map(p => [p.cx, `${p.name}\n${p.vendor}\n${moneyToMinor(p.cost)}`]));
+  const fresh = await fetchFreshProducts();
+  const freshMap = new Map(fresh.map(p => [p.cx, p]));
+  const changed = Object.keys(cart).some(cx => {
+    const p = freshMap.get(cx);
+    return !p || before.get(cx) !== `${p.name}\n${p.vendor}\n${moneyToMinor(p.cost)}`;
+  });
+  const missing = Object.keys(cart).filter(cx => !freshMap.has(cx));
+  if (missing.length) throw new Error('商品已下架或資料不完整：' + missing.join('、'));
+  products = fresh;
+  localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products, time: Date.now() }));
+  renderVendorTabs();
+  renderProducts(document.querySelector('.cat-tab.active').dataset.cat, document.getElementById('search').value);
+  updateCart();
+  return changed;
+}
+
+function setSubmitBusy(busy) {
+  submitting = busy;
+  const btn = document.querySelector('.modal-actions .btn-confirm');
+  if (btn) { btn.disabled = busy; btn.textContent = busy ? '⏳ 送出中…' : '✓ 重抓價庫後送出'; }
+}
+
+async function submitOrder() {
+  if (submitting) return;
+  captureDraftNote();
+  setSubmitBusy(true);
+  try {
+    const changed = await refreshBeforeSubmit();
+    if (changed) {
+      renderConfirmModal();
+      showToast('⚠️ 價格、品名或廠商資料已有更新；尚未送出，請重新核對', 8000);
+      return;
+    }
+    if (!pendingOrderId) pendingOrderId = makeOrderId();
+    const payload = buildPayload();
+    const serializedPayload = JSON.stringify(payload);
+    savePending({ orderId: payload.orderId, serializedPayload, state: 'sending', createdAt: Date.now(), lastEscalationAt: 0 });
+    await postFrozenPayload(serializedPayload);
+  } catch (err) {
+    console.error('送出前價庫重驗失敗:', err);
+    showToast('⚠️ 價庫暫時讀不到，尚未送出任何訂單；草稿已保留', 9000);
+  } finally { setSubmitBusy(false); }
+}
+
+async function postFrozenPayload(serializedPayload) {
+  const payload = JSON.parse(serializedPayload);
+  let ok = false, ack = null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    const response = await fetch(WAREHOUSE_WEBHOOK_URL, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: serializedPayload, signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    ok = response.ok;
+    try { ack = await response.json(); } catch (_) {}
+  } catch (err) { console.error('Webhook 失敗:', err); }
+  const status = ok && ack ? ack.status : null;
+  const known = ['ok','duplicate','held','over_cap','stale_price','preflight_unavailable'];
+  if (!known.includes(status)) {
+    savePending({ ...pendingSnapshot, orderId: payload.orderId, serializedPayload, state:'unknown' });
+    await writeAudit('ack_missing','unknown',serializedPayload);
+    showPendingState();
+    return;
+  }
+  await handleAck(status, ack, payload, serializedPayload);
+}
+
+async function handleAck(status, ack, payload, serializedPayload) {
+  if (status === 'ok') {
+    await writeAudit('ack','ok',serializedPayload);
+    clearPending();
+    if (liff.isInClient()) liff.sendMessages([{
+      type:'text',
+      text:`📦 ${payload.store === '中部倉' ? '倉管' : '指寄(' + payload.store + ')'} LIFF 訂單\n🆔 ${payload.orderId}\n${payload.items.map(i => `• ${i.cx} ${i.name} ×${i.qty}`).join('\n')}\n備註: ${payload.note || '無'}`
+    }]).catch(e => console.warn('sendMessages failed:', e));
+    Object.keys(cart).forEach(k => delete cart[k]);
+    draftNote='';
+    updateCart();
+    showSuccess(payload);
+    return;
+  }
+  if (status === 'duplicate') {
+    savePending({ ...pendingSnapshot, orderId:payload.orderId, serializedPayload, state:'needs_reconciliation' });
+    await writeAudit('ack','duplicate_needs_reconciliation',serializedPayload);
+    showPendingState();
+    return;
+  }
+  if (status === 'preflight_unavailable') {
+    savePending({ ...pendingSnapshot, orderId:payload.orderId, serializedPayload, state:'preflight_unavailable' });
+    await writeAudit('ack',status,serializedPayload);
+    renderConfirmModal();
+    showToast('⚠️ 預檢暫時不可用，訂單尚未送出；草稿與原單號已保留',9000);
+    return;
+  }
+  await writeAudit('ack',status,serializedPayload);
+  clearPending();
+  if (status === 'held') showHeld(ack,payload);
+  else if (status === 'over_cap') showBlockedResult('本單總部成本超過 $500,000，整單未寫帳、未通知廠商。請拆單或聯絡老闆。');
+  else showBlockedResult('送出前價庫資料已變更，整單未寫帳、未通知廠商。請返回重新核對。');
+}
+
+function showSuccess(payload) {
+  const items = payload.items.map(i => `<div>• ${escapeHtml(i.cx)} ${escapeHtml(i.name)} ×${i.qty}</div>`).join('');
+  document.getElementById('modal-title').textContent='✅ 訂單已完成';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="status-panel status-success">訂單已完成處理。</div>
+    <div class="field"><label>訂單編號</label><div class="order-id">${escapeHtml(payload.orderId)}</div></div>
+    <div class="field"><label>叫貨單位</label><div>${escapeHtml(payload.store)}</div></div>
+    <div class="field"><label>商品清單</label><div class="cart-list">${items}</div></div>
+    <div class="confirm-total"><span>批發合計（E）</span><span>$${formatMinor(payload.totalDeclaredMinor)}</span></div>
+    <div class="field" style="margin-top:10px"><label>備註全文</label><div class="status-panel status-success">${escapeHtml(payload.note || '無')}</div></div>
+    <div class="field"><label>後續</label><div>群組會收到訂單卡；需申請取消請使用：<b>$取消貨 ${escapeHtml(payload.orderId)}</b></div></div>`;
+  document.getElementById('modal-actions').innerHTML='<button class="btn-confirm" onclick="closeModal()">完成</button>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function showHeld(ack,payload) {
+  const blocked=Array.isArray(ack.blockedItems)?ack.blockedItems:[];
+  const rows=blocked.map(x=>`<li>${escapeHtml(x.cx)} ${escapeHtml(x.name)}：${escapeHtml(x.reason)}</li>`).join('');
+  document.getElementById('modal-title').textContent='⚠️ 本單已整單擋下';
+  document.getElementById('modal-content').innerHTML=`<div class="status-panel status-danger">本單未寫入帳表、未通知廠商。倉管與老闆已收到警示。修正後請重新確認送出。</div><div class="field"><label>原因品項</label><ul class="blocked-list">${rows || '<li>後端未提供明細，請聯絡老闆</li>'}</ul></div><div class="field"><label>訂單編號</label><div class="order-id">${escapeHtml(payload.orderId)}</div></div>`;
+  document.getElementById('modal-actions').innerHTML='<button class="btn-confirm" onclick="closeModal()">返回修改</button>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function showBlockedResult(message) {
+  document.getElementById('modal-title').textContent='⛔ 尚未送出';
+  document.getElementById('modal-content').innerHTML=`<div class="status-panel status-danger">${escapeHtml(message)}</div>`;
+  document.getElementById('modal-actions').innerHTML='<button class="btn-confirm" onclick="closeModal()">返回修改</button>';
+  document.getElementById('modal').classList.add('show');
+}
+
+function showPendingState() {
+  if (!pendingSnapshot) return;
+  if (pendingSnapshot.state === 'sending') {
+    pendingSnapshot.state='unknown';
+    localStorage.setItem(PENDING_STORAGE_KEY,JSON.stringify(pendingSnapshot));
+  }
+  const payload=JSON.parse(pendingSnapshot.serializedPayload);
+  const isDup=pendingSnapshot.state==='needs_reconciliation';
+  document.getElementById('modal-title').textContent=isDup?'⚠️ 完成度未確認':'⚠️ 送出狀態未確認';
+  document.getElementById('modal-content').innerHTML=`
+    <div class="status-panel ${isDup?'status-danger':'status-warning'}">${isDup?'此單號曾被系統接收，但完成度未確認，請勿另開新單。請老闆／倉管依序核對：分店叫貨日誌、中央帳、派單群。':'這張單可能已送出，也可能沒有。購物車、備註與原單號已鎖定；請用原單重送讓系統收斂，或聯絡老闆核對。'}</div>
+    <div class="field"><label>訂單編號</label><div class="order-id">${escapeHtml(payload.orderId)}</div></div>
+    <div class="field"><label>鎖定品項</label><div class="cart-list">${confirmItemsHtml(payload,false)}</div></div>
+    <div class="field"><label>備註全文</label><div class="status-panel status-warning">${escapeHtml(payload.note||'無')}</div></div>`;
+  document.getElementById('modal-actions').innerHTML=isDup
+    ?'<button class="btn-secondary" onclick="contactOwner()">聯絡老闆</button><button class="btn-danger" onclick="finishReconciliation()">已完成三處人工核對，結案</button>'
+    :'<button class="btn-secondary" onclick="contactOwner()">聯絡老闆</button><button class="btn-confirm" onclick="retryPendingOrder()">原單重送</button>';
+  document.getElementById('modal').classList.add('show');
+  maybeEscalatePending();
+}
+
+async function retryPendingOrder() {
+  if (!pendingSnapshot || pendingSnapshot.state==='needs_reconciliation' || submitting) return;
+  submitting=true;
+  savePending({...pendingSnapshot,state:'sending'});
+  try { await postFrozenPayload(pendingSnapshot.serializedPayload); }
+  finally { submitting=false; }
+}
+
+function contactOwner() { showToast(`請聯絡老闆核對此單：${pendingSnapshot?pendingSnapshot.orderId:pendingOrderId}`,9000); }
+
+async function finishReconciliation() {
+  if (!pendingSnapshot || pendingSnapshot.state!=='needs_reconciliation') return;
+  if (!window.confirm('確認已逐一核對：分店叫貨日誌、中央帳、派單群？結案只會清除此裝置草稿，不會補送訂單。')) return;
+  const serialized=pendingSnapshot.serializedPayload;
+  await writeAudit('reconciled','boss-confirmed',serialized);
+  clearPending();
+  Object.keys(cart).forEach(k=>delete cart[k]);
+  draftNote='';
+  closeModal();
+  updateCart();
+  showToast('核對結案已記錄；本機草稿已清除',7000);
+}
+
+function maybeEscalatePending() {
+  if (!pendingSnapshot) return;
+  const now=Date.now(),age=now-Number(pendingSnapshot.createdAt||now);
+  if (age<86400000 || now-Number(pendingSnapshot.lastEscalationAt||0)<86400000) return;
+  pendingSnapshot.lastEscalationAt=now;
+  localStorage.setItem(PENDING_STORAGE_KEY,JSON.stringify(pendingSnapshot));
+  showToast(age>=7*86400000?'⛔ 此未決單已超過 7 天，請今天人工核對結案':'⚠️ 此未決單已超過 24 小時，請人工核對',9000);
+}
+
+function restorePendingState() {
+  try {
+    const raw=localStorage.getItem(PENDING_STORAGE_KEY);
+    if (!raw) return false;
+    pendingSnapshot=JSON.parse(raw);
+    if (!pendingSnapshot || !pendingSnapshot.serializedPayload) throw new Error('bad pending');
+    const payload=JSON.parse(pendingSnapshot.serializedPayload);
+    pendingOrderId=payload.orderId;
+    draftNote=payload.note||'';
+    Object.keys(cart).forEach(k=>delete cart[k]);
+    payload.items.forEach(item=>{cart[item.cx]=item.qty;});
+    if (pendingSnapshot.state==='sending') {
+      pendingSnapshot.state='unknown';
+      localStorage.setItem(PENDING_STORAGE_KEY,JSON.stringify(pendingSnapshot));
+    }
+    updateCart();
+    if (pendingSnapshot.state==='preflight_unavailable') {
+      renderConfirmModal();
+      showToast('⚠️ 預檢暫時不可用；草稿與原單號已還原，可修改後重試',9000);
+      maybeEscalatePending();
+      return true;
+    }
+    showPendingState();
+    return true;
+  } catch(err) { console.error('pending restore failed',err); return false; }
+}
+
+// ============= 任務 / 庫存 / 歷史 =============
+function renderTasks() {
+  document.getElementById('tasks-list').innerHTML = whTasks.map(t => `
+    <div class="task-card ${t.urgent ? 'urgent' : ''}">
+      <div class="task-h">
+        <div><div class="task-id">${t.id}</div><div style="font-size:11px;color:#666;margin-top:1px">${t.orderId}</div></div>
+        <span class="task-status ${t.status}">${t.status}</span>
+      </div>
+      <div class="task-vendor">📦 廠商 <b>${t.vendor}</b> → 出給 <b>${t.store}</b></div>
+      <div class="task-items">${t.expected.map(it => `・${it.cx} ${it.name} ×<b>${it.qty}</b>`).join('<br>')}</div>
+      <div style="font-size:11px;color:#888;margin-bottom:6px">💬 ${t.note}</div>
+      <div class="task-act">
+        ${t.status === '待入庫' ? `<button class="btn-primary" onclick="alert('入庫流程：之後接 Make webhook')">✅ 收貨入庫</button>` : ''}
+        ${t.status === '待出貨' ? `<button class="btn-primary" onclick="alert('出貨流程：之後接 Make webhook')">📦 出貨給分店</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function renderInventory() {
+  let total = 0, reserved = 0;
+  inventoryData.forEach(p => { total += p.stock; reserved += p.reserved; });
+  document.getElementById('inventory-list').innerHTML = `
+    <div class="month-card"><div style="font-size:11px;opacity:.85">📊 庫存總覽</div>
+      <div style="font-size:18px;font-weight:700;margin-top:3px">${inventoryData.length} SKU · ${total} 件</div>
+      <div class="month-stats">
+        <div class="stat"><div class="lbl">已預定</div><div class="val">${reserved}</div></div>
+        <div class="stat"><div class="lbl">真實可用</div><div class="val">${total - reserved}</div></div>
+      </div>
+    </div>
+    ${inventoryData.map(p => {
+      const avail = p.stock - p.reserved;
+      const cls = avail <= 0 ? 'danger' : avail < 5 ? 'warning' : 'good';
+      return `<div class="inv-card">
+        <div class="inv-r1">
+          <div class="p-icon">${p.cx}</div>
+          <div class="p-info"><div class="p-cx">${p.cx}</div><div class="p-name">${p.name}</div><div class="p-vendor">📦 ${p.vendor}</div></div>
+        </div>
+        <div class="stock-row">
+          <div class="s-block"><div class="s-lbl">庫存</div><div class="s-val">${p.stock}</div></div>
+          <div class="s-block reserved"><div class="s-lbl">已預定</div><div class="s-val warning">${p.reserved}</div></div>
+          <div class="s-block ${avail <= 0 ? 'danger' : avail < 5 ? 'reserved' : 'available'}"><div class="s-lbl">可用</div><div class="s-val ${cls}">${avail}</div></div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function renderHistory() {
+  document.getElementById('history-list').innerHTML = `
+    <div class="month-card">
+      <div style="font-size:11px;opacity:.85">📋 本月出貨</div>
+      <div style="font-size:18px;font-weight:700;margin-top:3px">12 筆 / NT$245,800</div>
+    </div>
+    <div style="text-align:center;color:#888;padding:30px;font-size:13px">📋 之後接真實 sheet 資料</div>`;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${tab}`).classList.add('active');
+  document.querySelectorAll('.tab-item').forEach((t, i) => {
+    t.classList.toggle('active', i === ['order', 'tasks', 'inventory', 'history'].indexOf(tab));
+  });
+  if (tab === 'order') renderProducts('hot');
+  if (tab === 'tasks') renderTasks();
+  if (tab === 'inventory') renderInventory();
+  if (tab === 'history') renderHistory();
+}
+
+function showToast(msg, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms || 4000);
+}
+
+// 啟動：先 init LIFF + 載商品（並行），再 render
+loadProducts().then(() => {
+  renderVendorTabs();
+  renderProducts('hot');
+  restorePendingState();
+});
+updateCart();
+</script>
+</body>
+</html>
