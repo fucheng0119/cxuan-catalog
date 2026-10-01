@@ -372,13 +372,32 @@ const inventoryData = [
 ];
 
 // ============= 訂貨頁 =============
+// cx128 alias is presentation/search metadata only; never replace ERP p.name.
+const FILTER_ALIASES = Object.freeze({
+  cx128: {
+    note: '俗稱：28吋碳纖維濾芯－UD2用（單支；買6支請填數量6）',
+    terms: ['28吋碳纖維濾芯', '28吋碳纖維濾芯－UD2用', 'UD2濾芯', 'UD2用濾芯', '21L濾芯', '全屋淨淨軟一體濾芯']
+  },
+  cx933: { note: '六支組；數量按組計（1組＝6支）', terms: [] }
+});
+function filterAliasNote(p) {
+  return (FILTER_ALIASES[p.cx] || {}).note || '';
+}
+function matchesFilterAlias(p, query) {
+  const info = FILTER_ALIASES[p.cx];
+  if (!info) return false;
+  const normalize = v => String(v).normalize('NFKC').toLowerCase().replace(/[\s_\-－–—]/g, '').replace(/濾芯/g, '濾心');
+  const q = normalize(query).replace(/[x×*]\d+支$/, '');
+  return !!q && info.terms.some(term => normalize(term).includes(q));
+}
+
 function renderProducts(category='hot', search='') {
   const list = document.getElementById('products');
   let html = '';
   let filtered = products.filter(p => {
     if (search) {
       const s = search.toLowerCase();
-      return p.cx.toLowerCase().includes(s) || p.name.toLowerCase().includes(s) || (p.vendor||'').toLowerCase().includes(s);
+      return p.cx.toLowerCase().includes(s) || p.name.toLowerCase().includes(s) || (p.vendor||'').toLowerCase().includes(s) || matchesFilterAlias(p, s);
     }
     if (category === 'all') return true;
     if (category === 'hot') return HOT_CX.has(p.cx);
@@ -397,6 +416,7 @@ function renderProducts(category='hot', search='') {
         <div class="p-info">
           <div class="p-cx">${p.cx}</div>
           <div class="p-name">${p.name}</div>
+          ${filterAliasNote(p) ? `<div class="p-alias" style="font-size:12px;color:#52636b;line-height:1.5;margin-top:4px">${filterAliasNote(p)}</div>` : ''}
           <div class="p-vendor">📦 ${p.vendor}</div>
         </div>
       </div>
