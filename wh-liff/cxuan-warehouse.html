@@ -290,7 +290,7 @@ initLiff();
 // 商品 — dynamic fetch from GAS Web App + localStorage cache 1hr
 let products = [];
 const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7mnOC5sJvBCwH02Tb1TP6CJJed-8FwDx0Id9UArzQKYk2E5zbg7gA/exec?action=products';
-const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
+const PRODUCTS_CACHE_KEY = 'cxuan_products_20261015';
 const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hr
 
 // 2026-08-04：3M／舒萬諾合作未成立，從 LIFF 下架該供應線。
@@ -303,9 +303,14 @@ function isRetiredSolventumProduct(p) {
     .split('/')[0].trim().replace(/\s+/g, '').toLowerCase();
   return RETIRED_SOLVENTUM_VENDORS.has(primaryVendor);
 }
+// 2026-10-15：G-RO600G白／黑已停售，舊快取也不得重新顯示或送單。
+const RETIRED_PRODUCT_CODES = new Set(['cx796', 'cx797']);
+function isRetiredProductCode(cx) {
+  return RETIRED_PRODUCT_CODES.has(String(cx || '').trim().toLowerCase());
+}
 function filterOrderableProducts(items) {
   return (Array.isArray(items) ? items : []).filter(
-    p => p && p.vendor && Number(p.cost) > 0 && !isRetiredSolventumProduct(p)
+    p => p && p.vendor && Number(p.cost) > 0 && !isRetiredSolventumProduct(p) && !isRetiredProductCode(p.cx)
   );
 }
 
@@ -613,6 +618,10 @@ function closeModal() { document.getElementById('modal').classList.remove('show'
 
 let submitting = false, pendingOrderId = null;
 async function submitOrder() {
+  if (Object.keys(cart).some(isRetiredProductCode)) {
+    showToast('⚠️ 購物車含已停售的 G-RO600G，請移除後再送出');
+    return;
+  }
   if (submitting) return;
   const note = document.getElementById('note').value;
   const orderItems = Object.entries(cart).map(([cx, qty]) => {
