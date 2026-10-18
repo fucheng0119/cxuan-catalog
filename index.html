@@ -91,6 +91,13 @@ const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7m
 const CACHE_KEY = 'cxuan_catalog_live_v1';
 const FETCH_TIMEOUT_MS = 30000;
 const RESYNC_AFTER_MS = 10 * 60 * 1000; // App 從背景回到前景超過 10 分鐘就再同步一次
+// 2026-10-18 老闆裁示：3M／舒萬諾合作未成立、無法直接向舒萬諾進貨，App 比照叫貨 LIFF 隱藏該供應線。
+// 只擋主供應商（F 欄第一段）為 3M／舒萬諾的商品；盛智_3m商用、家享 3m 零件照常顯示。
+const RETIRED_SOLVENTUM_VENDORS = new Set(['3m', '3m舒萬諾', '舒萬諾', '台灣舒萬諾股份有限公司', 'solventum']);
+function isRetiredVendor(v) {
+  const primary = String(v || '').split('/')[0].trim().replace(/\s+/g, '').toLowerCase();
+  return RETIRED_SOLVENTUM_VENDORS.has(primary);
+}
 
 const filtersEl = document.getElementById("filters");
 const listEl    = document.getElementById("list");
@@ -100,7 +107,8 @@ const modalEl   = document.getElementById("modal");
 const modalImg  = document.getElementById("modalImg");
 const syncEl    = document.getElementById("sync");
 
-let P = SEED;          // 目前畫面上的商品清單
+const SEED_VISIBLE = SEED.filter(p => !isRetiredVendor(p.v));  // 內建快照也套同一條隱藏規則
+let P = SEED_VISIBLE;  // 目前畫面上的商品清單
 let activeVendor = "";
 let liveLoading = false;
 let lastSyncTs = 0;
@@ -124,6 +132,7 @@ function toCatalog(items) {
   const out = [];
   items.forEach(it => {
     if (!it || !it.cx) return;
+    if (isRetiredVendor(it.vendor)) return;   // 3M／舒萬諾：與叫貨 LIFF 同樣不顯示
     const s = Number(it.cost) || 0, r = Number(it.retail) || 0;
     if (!s && !r) return;                       // 兩個價都沒有的列不顯示
     const seed = seedByCx[it.cx];
@@ -210,9 +219,9 @@ function boot() {
   if (c) {
     const list = toCatalog(c.items);
     if (list.length) { lastSyncTs = c.ts || 0; setProducts(list); }
-    else setProducts(SEED);
+    else setProducts(SEED_VISIBLE);
   } else {
-    setProducts(SEED);
+    setProducts(SEED_VISIBLE);
   }
   loadLive();
 }
