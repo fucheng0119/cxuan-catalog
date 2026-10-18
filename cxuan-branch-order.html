@@ -806,6 +806,8 @@ updateCart();
 // ⛔金額只在後端「這次」確認身分後才顯示，不存手機（審查 LL-R1-01：被移出名單或改綁店的人不能先看到舊帳）；
 //   同一次打開中才沿用「同月份、10 分鐘內」確認過的資料，超過 1 分鐘背景更新；跨月或過期一律清掉重抓。
 //   清空時讓進行中的舊請求作廢（請求世代），舊回應晚到也不會把金額畫回來（LL-R2-02）。
+//   所有會打 API 的入口（開分頁、重試、警示列、定時檢查、回到前景）都先確認在分店群組裡；跨月回應只在
+//   同一次更新流程內重抓一次，仍對不上就清空並提示確認手機日期時間（LL-R3-01～03）。
 // 載入比照商品清單的提示：狀態列「正在載入／更新」、60 秒逾時（含讀回應本文）、失敗小字警示可點重試。
 // 叫貨頁程式（上一個 script 區塊）一字不動；本段只用自己的元素與 liff 物件。
 (() => {
@@ -824,8 +826,6 @@ updateCart();
   let lastOkAt = 0;         // 上次確認成功的時間
   let gen = 0;              // 請求世代：清空時 +1，進行中的舊請求一律作廢
   let inflightCtrl = null;  // 進行中請求的 AbortController
-  let monthRetried = false; // 跨月回應只重抓一次（手機時鐘錯時不無限重抓）
-  let trustedMonth = null;  // 重抓後仍與手機月份不同 → 採後端月份
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -835,8 +835,7 @@ updateCart();
     return m ? `${+m[1]}/${+m[2]} ${m[3]}:${m[4]}` : '';
   };
   const taipeiMonth = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
-  const sameMonth = d => d.month === taipeiMonth() || (trustedMonth !== null && d.month === trustedMonth);
-  const usable = () => !!data && sameMonth(data) && Date.now() - lastOkAt < LEDGER_KEEP_MS;
+  const usable = () => !!data && data.month === taipeiMonth() && Date.now() - lastOkAt < LEDGER_KEEP_MS;
   const ledgerActive = () => { const v = $('view-ledger'); return !!v && v.classList.contains('active'); };
 
   function setSync(text, cls) {
@@ -855,6 +854,17 @@ updateCart();
     lastOkAt = 0;
     setSync('');
     $('ledger-body').innerHTML = '';
+  }
+
+  // 只有在分店群組裡開的才算數；拿不到情境（未登入完成、群外）一律當群外
+  function groupContext() {
+    let ctx = null;
+    try { ctx = liff.getContext(); } catch (e) {}
+    return ctx && ctx.type === 'group' ? ctx : null;
+  }
+  function showGroupOnly() {
+    dropData();
+    renderNotice('👥', '請從分店群組開啟「我的叫貨」', '在分店的 LINE 群組裡點叫貨連結，再切到「我的叫貨」');
   }
 
   function renderNotice(icon, msg, sub, retry) {
@@ -928,7 +938,9 @@ updateCart();
     updateMore();
   }
 
-  async function syncLedger() {
+  // isMonthRetry：只有同一次更新流程裡的「跨月重抓」那一趟是 true，任何新流程一律從 false 開始（LL-R3-03）
+  async function syncLedger(isMonthRetry = false) {
+    if (!groupContext()) { showGroupOnly(); return; } // 所有入口都先確認在分店群組裡（LL-R3-01）
     if (data && !usable()) dropData(); // 開分頁、重試鈕、警示列…所有入口共用同一檢查（LL-R2-01）
     if (syncing) return;
     syncing = true;
@@ -959,20 +971,22 @@ updateCart();
       let body = null;
       try { body = await resp.json(); } catch (e) { if (ctrl.signal.aborted) throw e; } // 讀本文逾時也算連線逾時
       if (myGen !== gen) return;
+      if (!groupContext()) { showGroupOnly(); return; } // 落地前再確認一次情境
       if (!resp.ok || !body || body.ok !== true) {
         const e = new Error('HTTP ' + resp.status);
         e.userMsg = body && body.message;
         throw e;
       }
-      if (body.month !== taipeiMonth() && !monthRetried) {
-        // 月底發出、隔月才到的回應：不畫上個月的帳，清掉重抓一次（LL-R2-03）
-        monthRetried = true;
-        refetchForMonth = true;
+      if (body.month !== taipeiMonth()) {
         dropData();
+        if (!isMonthRetry) {
+          refetchForMonth = true; // 月底發出、隔月才到的回應：不畫上個月的帳，重抓一次（LL-R2-03）
+          return;
+        }
+        // 重抓後仍對不上＝無法確認目前月份（多半是手機日期時間不準）：不顯示任何金額（LL-R3-02）
+        renderNotice('🕒', '無法確認本月月份，請確認手機的日期時間後再試', '', true);
         return;
       }
-      trustedMonth = body.month === taipeiMonth() ? null : body.month; // 重抓後仍不同＝手機時鐘不準，採後端月份
-      monthRetried = false;
       lastOkAt = Date.now();
       renderLedger(body);
       if (body.stale) setSync(`⚠ 總部資料暫時無法更新，顯示 ${fmtWhen(body.asOf)} 的資料。點這裡重試`, 'warn');
@@ -980,7 +994,6 @@ updateCart();
       console.log('[ledger] synced:', body.orderCount, 'orders');
     } catch (err) {
       if (myGen !== gen) return;
-      monthRetried = false;
       console.error('[ledger] sync failed:', err);
       if (usable()) {
         setSync(`⚠ 資料可能不是最新（顯示 ${fmtWhen(data.asOf)} 的資料）。點這裡重試`, 'warn');
@@ -991,7 +1004,7 @@ updateCart();
     } finally {
       clearTimeout(timer);
       if (myGen === gen) { syncing = false; inflightCtrl = null; }
-      if (refetchForMonth) syncLedger();
+      if (refetchForMonth) syncLedger(true);
     }
   }
 
@@ -1006,21 +1019,17 @@ updateCart();
 
   async function openLedger() {
     const ok = await liffReady();
-    let ctx = null;
-    try { ctx = ok ? liff.getContext() : null; } catch (e) {}
     if (!ok) { dropData(); renderNotice('⚠️', 'LINE 載入失敗，請關閉後重新開啟'); return; }
-    if (!ctx || ctx.type !== 'group') {
-      dropData();
-      renderNotice('👥', '請從分店群組開啟「我的叫貨」', '在分店的 LINE 群組裡點叫貨連結，再切到「我的叫貨」');
-      return;
-    }
+    if (!groupContext()) { showGroupOnly(); return; }
     if (data && !usable()) dropData(); // 跨月或超過 10 分鐘：舊帳不留在畫面上，重新確認（LL-R1-04）
     if (!syncing && (!data || Date.now() - lastOkAt > LEDGER_REFRESH_MS)) syncLedger();
   }
 
   // 停在本頁跨月／過期、或從背景切回來：舊帳立刻清掉；人在本頁就重新確認（LL-R2-03）
   function recheck() {
-    if (!data || usable()) return;
+    if (!data) return;
+    if (!groupContext()) { showGroupOnly(); return; } // 情境不是群組：畫面上的帳立刻清掉（LL-R3-01）
+    if (usable()) return;
     dropData();
     if (ledgerActive()) syncLedger();
   }

@@ -255,6 +255,25 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     pend[0].a(jsonResp(200, payload(3))); await tick(10);
     A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R2-02: 舊請求晚到不得畫回金額');
   }
+  // R2-02b) 群組不變：背景更新 A 進行中→過期被清空、新請求 B 回 403→A 才晚到 200，不得把金額畫回來
+  {
+    const pend = []; let n = 0;
+    const e = makeEnv({ fetchImpl: async () => {
+      n++;
+      if (n === 1) return jsonResp(200, payload(3));
+      if (n === 2) return new Promise((a, b) => pend.push({ a, b }));
+      return jsonResp(403, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' });
+    } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1);
+    A(n === 2 && pend.length === 1, 'R2-02b: 背景更新 A 已發出');
+    e.advance(10 * 60 * 1000);
+    await e.fireIntervals(); await tick(10);
+    A(n === 3 && e.html().includes('無權限'), 'R2-02b: 過期清空後新請求 B 回 403');
+    pend[0].a(jsonResp(200, payload(3))); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('無權限'), 'R2-02b: A 晚到的 200 不得把金額畫回來');
+  }
   // R2-03a) 月底發出、隔月才到的回應：不畫上月帳，重抓一次；重抓仍不同（手機時鐘不準）就採後端、不無限重抓
   {
     const prev = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
@@ -267,7 +286,7 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     const e2 = makeEnv({ fetchImpl: async () => { m++; return jsonResp(200, payload(3, { month: prev, total: 999 })); } });
     await e2.clickTab(1); await tick(20);
     A(m === 2, 'R2-03a: 重抓仍不同只重抓一次, got=' + m);
-    A(e2.html().includes('NT$ 999'), 'R2-03a: 手機時鐘不準時採後端月份顯示');
+    A(!e2.html().includes('NT$') && e2.html().includes('無法確認本月月份') && e2.html().includes('data-ledger-retry'), 'R3-02: 重抓仍不同＝清空並提示確認手機日期時間、不顯示金額');
   }
   // R2-03b) 停在本頁跨月（沒有點分頁）：定時檢查或切回前景就清掉上月帳並重新確認
   for (const how of ['interval', 'visible']) {
@@ -296,6 +315,59 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     A(hang.html().includes('連線逾時') && hang.html().includes('data-ledger-retry'), 'R2-04: 60 秒逾時涵蓋讀本文，顯示可重試');
     await hang.clickBody('[data-ledger-retry]');
     A(hang.S.fetches.length === 2, 'R2-04: 逾時後沒有卡死、可以再重試');
+  }
+  // R3-01) 情境變成群外後：定時檢查、回到前景、警示列、晚到的回應都不得打 API 或畫出金額
+  {
+    const pend = []; let n = 0;
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : new Promise((a, b) => pend.push({ a, b })); } });
+    await e.clickTab(1);
+    A(e.html().includes('NT$ 10,665'), 'R3-01: 群內有資料');
+    e.setCtx({ type: 'utou', userId: UID });
+    await e.fireIntervals();
+    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟') && n === 1, 'R3-01: 定時檢查發現群外＝立刻清掉、不打 API');
+    e.advance(11 * 60 * 1000);
+    await e.fireVisible();
+    e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick();
+    A(n === 1 && !e.html().includes('NT$'), 'R3-01: 群外時回到前景／警示列都不打 API, n=' + n);
+  }
+  {
+    const pend = [];
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => new Promise((a, b) => pend.push({ a, b })) });
+    await e.clickTab(1);
+    e.setCtx({ type: 'utou', userId: UID });
+    pend[0].a(jsonResp(200, payload(3))); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R3-01: 回應落地前情境已不是群組＝不畫金額');
+  }
+  {
+    let n = 0;
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => { n++; if (n === 2) throw new Error('network down'); return jsonResp(200, payload(3)); } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(e.sync().cls.includes('warn') && e.html().includes('NT$'), 'R3-01b: 背景更新失敗，警示列亮著、資料留著');
+    e.setCtx({ type: 'utou', userId: UID });
+    e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick(10);
+    A(n === 2 && !e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R3-01b: 群外點警示列＝不打 API、清掉金額, n=' + n);
+  }
+  // R3-03) 跨月重抓的狀態只屬於同一次更新流程：中途被 403 結束，重新開啟後第一筆跨月回應仍要重抓
+  {
+    const prev = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => {
+      n++;
+      if (n === 1 || n === 3) return jsonResp(200, payload(3, { month: prev, total: 999 }));
+      if (n === 2) return jsonResp(403, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' });
+      return jsonResp(200, payload(3));
+    } });
+    await e.clickTab(1); await tick(10);
+    A(n === 2 && e.html().includes('無權限'), 'R3-03: 第一次流程跨月重抓後被 403 結束');
+    await e.clickBody('[data-ledger-retry]'); // 無權限畫面沒有重試鈕，改用重新切分頁開新流程
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(n === 4, 'R3-03: 新流程第一筆跨月回應也要重抓一次, n=' + n);
+    A(e.html().includes('NT$ 10,665') && !e.html().includes('NT$ 999'), 'R3-03: 只畫本月帳');
   }
   // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {
