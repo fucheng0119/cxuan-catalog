@@ -62,8 +62,16 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
   const tabs = [el('tab-order', 'main-tab active'), el('tab-ledger', 'main-tab')];
   tabs[0].dataset.view = 'view-order'; tabs[1].dataset.view = 'view-ledger';
   const ls = Object.assign({}, store);
+  const longTimers = new Map(); let timerSeq = 0; const intervals = []; const docListeners = {};
+  const fakeSetTimeout = (fn, ms, ...a) => {
+    if (ms >= 10000) { const id = 'L' + (++timerSeq); longTimers.set(id, { fn, ms }); return id; }
+    return setTimeout(fn, ms, ...a);
+  };
+  const fakeClearTimeout = id => { if (typeof id === 'string' && longTimers.has(id)) longTimers.delete(id); else clearTimeout(id); };
   const context = {
-    console: { log() {}, warn() {}, error() {} }, setTimeout, clearTimeout, AbortController, Promise, JSON, Date: FakeDate, Math, Number, String, Array, Object, Error,
+    console: { log() {}, warn() {}, error() {} }, setTimeout: fakeSetTimeout, clearTimeout: fakeClearTimeout,
+    setInterval: (fn, ms) => { intervals.push({ fn, ms }); return intervals.length; }, clearInterval() {},
+    AbortController, Promise, JSON, Date: FakeDate, Math, Number, String, Array, Object, Error,
     localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, v) => { S.lsWrites++; ls[k] = String(v); }, removeItem: k => { delete ls[k]; } },
     document: {
       getElementById: id => {
@@ -71,7 +79,9 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
         if (id === 'ledger-more') return bodyHtml.includes('id="ledger-more"') ? els['ledger-more'] : null;
         return els[id] || null;
       },
-      querySelectorAll: sel => sel === '.main-tab' ? tabs : sel === '.view' ? [els['view-order'], els['view-ledger']] : []
+      querySelectorAll: sel => sel === '.main-tab' ? tabs : sel === '.view' ? [els['view-order'], els['view-ledger']] : [],
+      addEventListener: (t, f) => { (docListeners[t] = docListeners[t] || []).push(f); },
+      visibilityState: 'visible'
     },
     liff: { ready: Promise.resolve(), getContext: () => ctx, getAccessToken: () => 'eyJhbGciOiJIUzI1NiJ9.sandbox-token.sig' },
     fetch: async (url, opt) => { S.fetches.push({ url, opt }); return fetchImpl(url, opt, S); }
@@ -82,6 +92,10 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
   return {
     S, ls, els, tabs, body,
     advance: ms => { offset += ms; },
+    fireLong: (ms) => { for (const [id, t] of [...longTimers]) if (t.ms === ms) { longTimers.delete(id); t.fn(); } },
+    fireIntervals: async () => { intervals.forEach(i => i.fn()); await tick(); },
+    fireVisible: async () => { (docListeners.visibilitychange || []).forEach(f => f()); await tick(); },
+    setCtx: c => { Object.keys(ctx).forEach(k => delete ctx[k]); Object.assign(ctx, c); },
     html: () => bodyHtml + S.listExtra,
     cards: () => count(bodyHtml + S.listExtra, 'class="ledger-order'),
     sync: () => ({ text: els['ledger-sync'].textContent, cls: els['ledger-sync'].className }),
@@ -203,6 +217,85 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     e.advance(10 * 60 * 1000);
     d.calls[1].rej(new Error('network down')); await tick(10);
     A(!e.html().includes('NT$') && e.html().includes('連不上帳務資料'), '更新途中過期又失敗: 清掉金額');
+  }
+  // R1-04b) 月底 23:59:30 載入、40 秒後（未滿 1 分鐘）跨月再切回：也要清掉上月帳重新確認
+  {
+    const pend = []; let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : new Promise((a, b) => pend.push({ a, b })); } });
+    e.advance(msToNextTaipeiMonth() - 30 * 1000);
+    await e.clickTab(1);
+    A(e.html().includes('NT$ 10,665'), 'R1-04b: 月底最後 30 秒有資料');
+    e.advance(40 * 1000);
+    await e.clickTab(0); await e.clickTab(1);
+    A(!e.html().includes('NT$') && n === 2, 'R1-04b: 未滿 1 分鐘跨月也清掉並重新確認');
+  }
+  // R2-01) 背景更新失敗後過了 10 分鐘才點警示列重試：重新確認期間不得顯示舊帳（跨月同）
+  for (const kind of ['expire', 'month']) {
+    let n = 0; const pend = [];
+    const e = makeEnv({ fetchImpl: async () => { n++; if (n === 1) return jsonResp(200, payload(3)); if (n === 2) throw new Error('network down'); return new Promise((a, b) => pend.push({ a, b })); } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(e.sync().text.includes('資料可能不是最新'), 'R2-01 ' + kind + ': 先有小字警示');
+    e.advance(kind === 'expire' ? 10 * 60 * 1000 : msToNextTaipeiMonth() + 5000);
+    e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick();
+    A(e.S.fetches.length === 3, 'R2-01 ' + kind + ': 點警示列有重打');
+    A(!e.html().includes('NT$'), 'R2-01 ' + kind + ': 重新確認期間不得顯示舊帳');
+  }
+  // R2-02) 舊請求晚到：清空後回來的 200 不得把金額畫回來
+  {
+    const pend = [];
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => new Promise((a, b) => pend.push({ a, b })) });
+    await e.clickTab(1);
+    A(pend.length === 1, 'R2-02: 第一個請求發出');
+    e.setCtx({ type: 'utou', userId: UID });
+    await e.clickTab(0); await e.clickTab(1);
+    A(e.html().includes('請從分店群組開啟'), 'R2-02: 清空後顯示提示');
+    pend[0].a(jsonResp(200, payload(3))); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R2-02: 舊請求晚到不得畫回金額');
+  }
+  // R2-03a) 月底發出、隔月才到的回應：不畫上月帳，重抓一次；重抓仍不同（手機時鐘不準）就採後端、不無限重抓
+  {
+    const prev = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3, { month: prev, total: 999 })) : jsonResp(200, payload(3)); } });
+    await e.clickTab(1); await tick(10);
+    A(n === 2, 'R2-03a: 跨月回應要重抓一次, got=' + n);
+    A(!e.html().includes('NT$ 999') && e.html().includes('NT$ 10,665'), 'R2-03a: 只畫本月帳');
+    let m = 0;
+    const e2 = makeEnv({ fetchImpl: async () => { m++; return jsonResp(200, payload(3, { month: prev, total: 999 })); } });
+    await e2.clickTab(1); await tick(20);
+    A(m === 2, 'R2-03a: 重抓仍不同只重抓一次, got=' + m);
+    A(e2.html().includes('NT$ 999'), 'R2-03a: 手機時鐘不準時採後端月份顯示');
+  }
+  // R2-03b) 停在本頁跨月（沒有點分頁）：定時檢查或切回前景就清掉上月帳並重新確認
+  for (const how of ['interval', 'visible']) {
+    const pend = [];
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : new Promise((a, b) => pend.push({ a, b })); } });
+    await e.clickTab(1);
+    A(e.html().includes('NT$ 10,665'), 'R2-03b ' + how + ': 跨月前有資料');
+    e.advance(msToNextTaipeiMonth() + 5000);
+    if (how === 'interval') await e.fireIntervals(); else await e.fireVisible();
+    A(!e.html().includes('NT$'), 'R2-03b ' + how + ': 跨月後清掉上月帳');
+    A(n === 2, 'R2-03b ' + how + ': 人在本頁就重新確認');
+  }
+  // R2-04) 403 標頭一到就清（本文卡住也一樣）；200 本文卡住 → 60 秒逾時涵蓋讀本文、之後可再重試
+  {
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : { ok: false, status: 403, json: () => new Promise(() => {}) }; } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('無權限'), 'R2-04: 403 本文卡住也立刻清掉金額');
+    const hang = makeEnv({ fetchImpl: async (url, opt) => ({ ok: true, status: 200, json: () => new Promise((a, b) => { opt.signal.addEventListener('abort', () => { const er = new Error('aborted'); er.name = 'AbortError'; b(er); }); }) }) });
+    await hang.clickTab(1);
+    A(hang.sync().text.includes('正在載入'), 'R2-04: 本文卡住時還在載入');
+    hang.fireLong(60000); await tick(10);
+    A(hang.html().includes('連線逾時') && hang.html().includes('data-ledger-retry'), 'R2-04: 60 秒逾時涵蓋讀本文，顯示可重試');
+    await hang.clickBody('[data-ledger-retry]');
+    A(hang.S.fetches.length === 2, 'R2-04: 逾時後沒有卡死、可以再重試');
   }
   // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {
