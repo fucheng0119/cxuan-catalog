@@ -29,11 +29,12 @@ function payload(n, extra) {
       { cx: 'cx226', name: 'KT5mPP', qty: 5, price: 105, subtotal: 525, status: i === 1 ? '已作廢' : '已送出', review: false }
     ]
   }));
-  return Object.assign({ ok: true, store: '沙鹿店', month: MONTH, asOf: `${MONTH}-18T17:30:00+08:00`, stale: false, total: 10665, orderCount: 6, voidedOrderCount: 1, reviewLineCount: 0, undatedRowCount: 0, orders, listLimit: 60, listTruncated: false }, extra || {});
+  return Object.assign({ ok: true, store: '沙鹿店', month: MONTH, asOf: `${MONTH}-18T17:30:00+08:00`, stale: false, total: 10665, orderCount: 6, voidedOrderCount: 1, reviewLineCount: 0, undatedRowCount: 0, orders, listLimit: 60, listTruncated: false,
+    payable: { state: 'ok', goods: 563674, posted: 563674, pendingKnown: 0, unknownCount: 2, taxMixedCount: 0, duplicateCount: 0, cutoff: `${MONTH}-16T22:33:13+08:00`, stale: false, readAt: `${MONTH}-18T22:30:00+08:00` } }, extra || {});
 }
 
 function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID }, store = {}, fetchImpl } = {}) {
-  const S = { fetches: [], listExtra: '', lsWrites: 0 };
+  const S = { fetches: [], listExtra: '', lsWrites: 0, loggedIn: true };
   let offset = 0;
   const RealDate = Date;
   class FakeDate extends RealDate {
@@ -83,7 +84,7 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
       addEventListener: (t, f) => { (docListeners[t] = docListeners[t] || []).push(f); },
       visibilityState: 'visible'
     },
-    liff: { ready: Promise.resolve(), getContext: () => ctx, getAccessToken: () => 'eyJhbGciOiJIUzI1NiJ9.sandbox-token.sig' },
+    liff: { ready: Promise.resolve(), getContext: () => ctx, isLoggedIn: () => S.loggedIn, getAccessToken: () => 'eyJhbGciOiJIUzI1NiJ9.sandbox-token.sig' },
     fetch: async (url, opt) => { S.fetches.push({ url, opt }); return fetchImpl(url, opt, S); }
   };
   context.window = context;
@@ -96,6 +97,7 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
     fireIntervals: async () => { intervals.forEach(i => i.fn()); await tick(); },
     fireVisible: async () => { (docListeners.visibilitychange || []).forEach(f => f()); await tick(); },
     setCtx: c => { Object.keys(ctx).forEach(k => delete ctx[k]); Object.assign(ctx, c); },
+    setLoggedIn: v => { S.loggedIn = v; },
     html: () => bodyHtml + S.listExtra,
     cards: () => count(bodyHtml + S.listExtra, 'class="ledger-order'),
     sync: () => ({ text: els['ledger-sync'].textContent, cls: els['ledger-sync'].className }),
@@ -116,17 +118,20 @@ function deferredSeq(first) {
 const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1) return jsonResp(200, first); throw new Error('network down'); }; };
 
 (async () => {
-  // 1) 群外開啟：只提示、不打 API、不顯示任何金額
+  // 1) 階段 1b：群外（一對一、電腦版）也能看自己店；只有 LINE 沒登入完成才擋、不打 API
   {
     const e = makeEnv({ ctx: { type: 'utou', userId: UID }, fetchImpl: async () => jsonResp(200, payload(3)) });
-    await e.clickTab(1);
-    A(e.html().includes('請從分店群組開啟「我的叫貨」'), '群外: 要顯示請從分店群組開啟');
-    A(e.S.fetches.length === 0, '群外: 不得呼叫 API');
-    A(!e.html().includes('NT$'), '群外: 不得顯示金額');
+    await e.clickTab(1); await tick(10);
+    A(e.S.fetches.length === 1 && e.html().includes('NT$ 563,674'), '群外也能看: 一對一打開照樣打 API、顯示自己店');
+    A(!e.html().includes('請從分店群組開啟'), '群外也能看: 不再出現群組限定提示');
     A(e.els['view-ledger'].classList.contains('active') && !e.els['view-order'].classList.contains('active'), '切分頁: 我的叫貨要顯示、叫貨頁要隱藏');
     await e.clickTab(0);
     A(e.els['view-order'].classList.contains('active') && !e.els['view-ledger'].classList.contains('active'), '切回叫貨: 叫貨頁要恢復');
     A(e.tabs[0].attrs['aria-selected'] === 'true' && e.tabs[1].attrs['aria-selected'] === 'false', '切回叫貨: aria-selected 要同步');
+    const n = makeEnv({ fetchImpl: async () => jsonResp(200, payload(3)) });
+    n.setLoggedIn(false);
+    await n.clickTab(1);
+    A(n.S.fetches.length === 0 && !n.html().includes('NT$') && n.html().includes('LINE 登入還沒完成'), '沒登入: 只提示、不打 API、無金額');
   }
   // 2) 名單內、有資料 23 張：合計、張數、固定小字、前 10 張、拉到底再 10 張、沒有更多；⛔不存手機
   {
@@ -134,8 +139,13 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     await e.clickTab(1);
     const h = e.html();
     A(h.includes('NT$ 10,665'), '有資料: 合計 NT$ 10,665');
-    A(h.includes('共 6 張單・不含已作廢'), '有資料: 張數文案');
-    A(h.includes('※ 依叫貨單批發價估算，非正式請款'), '有資料: 固定小字');
+    A(h.includes('本月叫貨貨款（模擬帳）') && h.includes('NT$ 563,674'), '有資料: 主數字＝模擬帳本月貨款');
+    A(h.includes('已列帳 NT$ 563,674・待入帳已知 NT$ 0'), '有資料: 已列帳／待入帳已知');
+    A(h.includes('另有 2 筆待帳金額未明，尚未加計'), '有資料: 待帳金額未明提示');
+    A(h.includes('模擬帳資料讀至 10/16 22:33'), '有資料: 模擬帳讀至時間');
+    A(h.includes('※ 依模擬帳估算，不含廣告費與發票稅金；正式應付以明珠核對為準'), '有資料: 固定小字');
+    A(h.includes('其中用 LIFF 叫的：6 張・NT$ 10,665（不含已作廢）'), '有資料: LIFF 叫貨為輔');
+    A(h.includes('LIFF 叫貨紀錄（只含用 LIFF 下的單）'), '有資料: 明細標題寫清楚只含 LIFF');
     A(h.includes('🏬 沙鹿店'), '有資料: 店名以後端為準');
     A(e.cards() === 10, '有資料: 先畫 10 張, got=' + e.cards());
     A(h.includes('ledger-order void'), '有資料: 已作廢整張灰字刪線');
@@ -249,11 +259,11 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     const e = makeEnv({ ctx, fetchImpl: async () => new Promise((a, b) => pend.push({ a, b })) });
     await e.clickTab(1);
     A(pend.length === 1, 'R2-02: 第一個請求發出');
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     await e.clickTab(0); await e.clickTab(1);
-    A(e.html().includes('請從分店群組開啟'), 'R2-02: 清空後顯示提示');
+    A(e.html().includes('LINE 登入還沒完成'), 'R2-02: 清空後顯示提示');
     pend[0].a(jsonResp(200, payload(3))); await tick(10);
-    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R2-02: 舊請求晚到不得畫回金額');
+    A(!e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成'), 'R2-02: 舊請求晚到不得畫回金額');
   }
   // R2-02b) 群組不變：背景更新 A 進行中→過期被清空、新請求 B 回 403→A 才晚到 200，不得把金額畫回來
   {
@@ -323,9 +333,9 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     const e = makeEnv({ ctx, fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : new Promise((a, b) => pend.push({ a, b })); } });
     await e.clickTab(1);
     A(e.html().includes('NT$ 10,665'), 'R3-01: 群內有資料');
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     await e.fireIntervals();
-    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟') && n === 1, 'R3-01: 定時檢查發現群外＝立刻清掉、不打 API');
+    A(!e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成') && n === 1, 'R3-01: 定時檢查發現群外＝立刻清掉、不打 API');
     e.advance(11 * 60 * 1000);
     await e.fireVisible();
     e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick();
@@ -336,9 +346,9 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
     const e = makeEnv({ ctx, fetchImpl: async () => new Promise((a, b) => pend.push({ a, b })) });
     await e.clickTab(1);
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     pend[0].a(jsonResp(200, payload(3))); await tick(10);
-    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R3-01: 回應落地前情境已不是群組＝不畫金額');
+    A(!e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成'), 'R3-01: 回應落地前情境已不是群組＝不畫金額');
   }
   {
     let n = 0;
@@ -348,9 +358,9 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     e.advance(61 * 1000);
     await e.clickTab(0); await e.clickTab(1); await tick(10);
     A(e.sync().cls.includes('warn') && e.html().includes('NT$'), 'R3-01b: 背景更新失敗，警示列亮著、資料留著');
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick(10);
-    A(n === 2 && !e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R3-01b: 群外點警示列＝不打 API、清掉金額, n=' + n);
+    A(n === 2 && !e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成'), 'R3-01b: 群外點警示列＝不打 API、清掉金額, n=' + n);
   }
   // R4-01a) 群內載入 23 張後情境變群外：拉到底或點「載入更多」都不得再加金額
   for (const how of ['scroll', 'tap']) {
@@ -359,9 +369,9 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     const e = makeEnv({ ctx, fetchImpl: async () => { n++; return jsonResp(200, payload(23)); } });
     await e.clickTab(1);
     A(e.cards() === 10, 'R4-01a ' + how + ': 先有 10 張');
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     if (how === 'scroll') await e.scrollBottom(); else await e.clickBody('.ledger-more.tap');
-    A(e.cards() === 0 && !e.html().includes('NT$') && e.html().includes('請從分店群組開啟') && n === 1, 'R4-01a ' + how + ': 群外不追加、清掉金額、不打 API');
+    A(e.cards() === 0 && !e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成') && n === 1, 'R4-01a ' + how + ': 群外不追加、清掉金額、不打 API');
   }
   // R4-01b) 背景更新進行中變群外、接著更新失敗：不得保留金額
   {
@@ -371,9 +381,9 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     await e.clickTab(1);
     e.advance(61 * 1000);
     await e.clickTab(0); await e.clickTab(1);
-    e.setCtx({ type: 'utou', userId: UID });
+    e.setLoggedIn(false);
     pend[0].b(new Error('network down')); await tick(10);
-    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R4-01b: 群外時更新失敗＝清掉金額、不留警示');
+    A(!e.html().includes('NT$') && e.html().includes('LINE 登入還沒完成'), 'R4-01b: 群外時更新失敗＝清掉金額、不留警示');
   }
   // R4-01c) 跨月後（還沒輪到定時檢查）拉到底：不追加上月帳，清掉並重新確認
   {
@@ -400,6 +410,49 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     await e.clickTab(0); await e.clickTab(1); await tick(10);
     A(n === 4, 'R3-03: 新流程第一筆跨月回應也要重抓一次, n=' + n);
     A(e.html().includes('NT$ 10,665') && !e.html().includes('NT$ 999'), 'R3-03: 只畫本月帳');
+  }
+  // 1b-1) 模擬帳讀取中：先顯示 LIFF 合計並說明；20 秒後自動再抓，讀到就換模擬帳主數字；一直讀取中最多再抓 3 次
+  {
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return jsonResp(200, n < 3 ? payload(3, { payable: { state: 'loading' } }) : payload(3)); } });
+    await e.clickTab(1); await tick(10);
+    A(e.html().includes('用 LIFF 叫的（只含用 LIFF 下的單）') && e.html().includes('NT$ 10,665') && e.html().includes('模擬帳讀取中，稍後自動更新'), '1b 讀取中: 先顯示 LIFF 合計並說明');
+    A(!e.html().includes('NT$ 563,674'), '1b 讀取中: 不掰模擬帳數字');
+    e.fireLong(20000); await tick(10);
+    A(n === 2 && e.html().includes('模擬帳讀取中'), '1b 讀取中: 20 秒後自動再抓（仍讀取中）');
+    e.fireLong(20000); await tick(10);
+    A(n === 3 && e.html().includes('NT$ 563,674') && e.html().includes('本月叫貨貨款（模擬帳）'), '1b 讀取中: 讀到就換成模擬帳主數字');
+    e.fireLong(20000); await tick(10);
+    A(n === 3, '1b 讀取中: 讀到後不再自動抓');
+    let m = 0;
+    const always = makeEnv({ fetchImpl: async () => { m++; return jsonResp(200, payload(3, { payable: { state: 'loading' } })); } });
+    await always.clickTab(1); await tick(10);
+    for (let i = 0; i < 5; i++) { always.fireLong(20000); await tick(10); }
+    A(m === 4, '1b 讀取中: 一直讀取中最多再抓 3 次, m=' + m);
+    let k = 0;
+    const lost = makeEnv({ fetchImpl: async () => { k++; return jsonResp(200, payload(3, { payable: { state: 'loading' } })); } });
+    await lost.clickTab(1); await tick(10);
+    lost.setLoggedIn(false);
+    await lost.fireIntervals();
+    lost.fireLong(20000); await tick(10);
+    A(k === 1 && !lost.html().includes('NT$'), '1b 讀取中: 登入失效清空後不再自動抓');
+  }
+  // 1b-2) 模擬帳未開帳／讀不到／底帳待補：只顯示 LIFF 合計並寫清楚原因
+  for (const [pay, label] of [[{ state: 'unconfigured' }, '本月模擬帳還沒開帳'], [{ state: 'unavailable' }, '模擬帳暫時讀不到'],
+    [{ state: 'unmapped' }, '模擬帳暫時讀不到'], [{ state: 'ok', goods: null, posted: null, pendingKnown: 0, unknownCount: 0, taxMixedCount: 0, duplicateCount: 0, cutoff: null, stale: false }, '模擬帳本月底帳待補']]) {
+    const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(3, { payable: pay })) });
+    await e.clickTab(1); await tick(10);
+    A(e.html().includes(label) && e.html().includes('完整叫貨帳以模擬帳為準') && e.html().includes('用 LIFF 叫的（只含用 LIFF 下的單）'), '1b ' + label);
+    A(e.S.fetches.length === 1, '1b ' + label + ': 不自動重抓');
+  }
+  // 1b-3) 模擬帳超過 48 小時沒更新、含稅待拆、疑似重複：都要提醒
+  {
+    const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(3, { payable: { state: 'ok', goods: 615908, posted: 460116, pendingKnown: 155792, unknownCount: 0, taxMixedCount: 1, duplicateCount: 1, cutoff: `${MONTH}-16T22:33:13+08:00`, stale: true, readAt: `${MONTH}-18T22:30:00+08:00` } })) });
+    await e.clickTab(1); await tick(10);
+    const h = e.html();
+    A(h.includes('NT$ 615,908') && h.includes('已列帳 NT$ 460,116・待入帳已知 NT$ 155,792'), '1b 嘉義型: 已列帳＋待入帳已知');
+    A(h.includes('模擬帳超過 48 小時沒更新') && h.includes('含稅費尚待拆分') && h.includes('疑似已列帳'), '1b: stale／含稅／疑似重複都要提醒');
+    A(!h.includes('待帳金額未明'), '1b: 沒有未明金額就不提');
   }
   // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {
@@ -440,7 +493,7 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
   {
     const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(0, { store: '西屯店', total: 0, orderCount: 0, voidedOrderCount: 0 })) });
     await e.clickTab(1); await tick(10);
-    A(e.html().includes('本月尚無叫貨單') && e.html().includes('NT$ 0') && e.html().includes('共 0 張單'), '空狀態: 文案與 0 元');
+    A(e.html().includes('本月還沒有用 LIFF 叫貨') && e.html().includes('NT$ 563,674') && e.html().includes('其中用 LIFF 叫的：0 張・NT$ 0'), '空狀態: 模擬帳照顯示、LIFF 0 張');
   }
   // 11) 後端標 stale：狀態列警示
   {
