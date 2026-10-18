@@ -1,5 +1,5 @@
 // 用法: node ledger_assert.js <html路徑>
-// 「我的叫貨」分頁（<script id="ledger-js">）考卷：假 DOM＋假 liff＋假 fetch，不連網、不送單
+// 「我的叫貨」分頁（<script id="ledger-js">）考卷：假 DOM＋假 liff＋假 fetch＋可控時鐘，不連網、不送單
 const fs = require('fs'), vm = require('vm');
 const [,, PATH] = process.argv;
 const src = fs.readFileSync(PATH, 'utf8');
@@ -11,8 +11,11 @@ const A = (cond, msg) => { if (cond) passes++; else fails.push(msg); };
 const count = (s, needle) => s.split(needle).length - 1;
 const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise(r => setTimeout(r, 0)); };
 const MONTH = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
-const PREV_MONTH = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
 const UID = 'U06c36b215f4d9fab6efbe5b180b15ed1';
+const msToNextTaipeiMonth = () => {
+  const t = new Date(Date.now() + 8 * 3600e3);
+  return Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 1) - (Date.now() + 8 * 3600e3);
+};
 
 function payload(n, extra) {
   const orders = Array.from({ length: n }, (_, i) => ({
@@ -30,7 +33,13 @@ function payload(n, extra) {
 }
 
 function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID }, store = {}, fetchImpl } = {}) {
-  const S = { fetches: [], listExtra: '' };
+  const S = { fetches: [], listExtra: '', lsWrites: 0 };
+  let offset = 0;
+  const RealDate = Date;
+  class FakeDate extends RealDate {
+    constructor(...a) { if (a.length) super(...a); else super(RealDate.now() + offset); }
+    static now() { return RealDate.now() + offset; }
+  }
   const classSet = (init) => {
     const set = new Set(String(init || '').split(/\s+/).filter(Boolean));
     return { add: c => set.add(c), remove: c => set.delete(c), contains: c => set.has(c), toggle: (c, on) => { (on === undefined ? !set.has(c) : on) ? set.add(c) : set.delete(c); }, _set: set };
@@ -54,8 +63,8 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
   tabs[0].dataset.view = 'view-order'; tabs[1].dataset.view = 'view-ledger';
   const ls = Object.assign({}, store);
   const context = {
-    console: { log() {}, warn() {}, error() {} }, setTimeout, clearTimeout, AbortController, Promise, JSON, Date, Math, Number, String, Array, Object, Error,
-    localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, v) => { ls[k] = String(v); }, removeItem: k => { delete ls[k]; } },
+    console: { log() {}, warn() {}, error() {} }, setTimeout, clearTimeout, AbortController, Promise, JSON, Date: FakeDate, Math, Number, String, Array, Object, Error,
+    localStorage: { getItem: k => (k in ls ? ls[k] : null), setItem: (k, v) => { S.lsWrites++; ls[k] = String(v); }, removeItem: k => { delete ls[k]; } },
     document: {
       getElementById: id => {
         if (id === 'ledger-list') return bodyHtml.includes('id="ledger-list"') ? list : null;
@@ -70,8 +79,9 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
   context.window = context;
   vm.createContext(context);
   vm.runInContext(code, context, { timeout: 5000 });
-  const env = {
+  return {
     S, ls, els, tabs, body,
+    advance: ms => { offset += ms; },
     html: () => bodyHtml + S.listExtra,
     cards: () => count(bodyHtml + S.listExtra, 'class="ledger-order'),
     sync: () => ({ text: els['ledger-sync'].textContent, cls: els['ledger-sync'].className }),
@@ -79,9 +89,17 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
     scrollBottom: async () => { const s = els['ledger-scroll']; s.scrollTop = s.scrollHeight - s.clientHeight; s.listeners.scroll.forEach(f => f({ currentTarget: s })); await tick(); },
     clickBody: async (selector) => { body.listeners.click.forEach(f => f({ target: { closest: q => (q === selector ? {} : null) } })); await tick(); }
   };
-  return env;
 }
 const jsonResp = (status, obj) => ({ ok: status >= 200 && status < 300, status, json: async () => obj });
+function deferredSeq(first) {
+  const calls = [];
+  const impl = async () => {
+    if (calls.length === 0) { calls.push(null); return jsonResp(200, first); }
+    let res, rej; const p = new Promise((a, b) => { res = a; rej = b; }); calls.push({ res, rej }); return p;
+  };
+  return { impl, calls };
+}
+const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1) return jsonResp(200, first); throw new Error('network down'); }; };
 
 (async () => {
   // 1) 群外開啟：只提示、不打 API、不顯示任何金額
@@ -96,8 +114,7 @@ const jsonResp = (status, obj) => ({ ok: status >= 200 && status < 300, status, 
     A(e.els['view-order'].classList.contains('active') && !e.els['view-ledger'].classList.contains('active'), '切回叫貨: 叫貨頁要恢復');
     A(e.tabs[0].attrs['aria-selected'] === 'true' && e.tabs[1].attrs['aria-selected'] === 'false', '切回叫貨: aria-selected 要同步');
   }
-  // 2) 名單內、有資料 23 張：合計、張數、固定小字、前 10 張、拉到底再 10 張、沒有更多
-  let savedCache = null;
+  // 2) 名單內、有資料 23 張：合計、張數、固定小字、前 10 張、拉到底再 10 張、沒有更多；⛔不存手機
   {
     const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(23)) });
     await e.clickTab(1);
@@ -124,49 +141,89 @@ const jsonResp = (status, obj) => ({ ok: status >= 200 && status < 300, status, 
     A(f && f.opt.method === 'POST' && /text\/plain/.test(f.opt.headers['Content-Type']), '有資料: POST text/plain（免預檢）');
     const sent = f ? JSON.parse(f.opt.body) : {};
     A(JSON.stringify(Object.keys(sent)) === '["accessToken"]', '有資料: 只送 accessToken，⛔不送店別/群組/userId');
-    const cached = e.ls['cxuan_ledger_v1'] || '';
-    A(cached.includes('"month":"' + MONTH + '"'), '快取: 有寫入本月資料');
-    A(!cached.includes(UID), '快取: ⛔不存原始 userId');
+    A(e.S.lsWrites === 0 && Object.keys(e.ls).length === 0, '⛔帳不得存進手機（LL-R1-01）');
     A(e.sync().text === '', '有資料: 同步完狀態列消失');
-    savedCache = cached;
-    // 1 分鐘內切回分頁不重抓
+    // 同一次打開：1 分鐘內切回不重抓、照樣顯示
     await e.clickTab(0); await e.clickTab(1);
-    A(e.S.fetches.length === 1, '切回分頁: 1 分鐘內不重抓');
+    A(e.S.fetches.length === 1 && e.html().includes('NT$ 10,665'), '同次打開: 1 分鐘內切回直接顯示、不重抓');
   }
-  // 3) 有快取：先畫快取＋狀態列「正在更新」，背景失敗 → 小字警示可重試，資料留著
+  // 3) 手機裡若殘留舊版快取，也⛔不得拿出來顯示（金額一定等後端這次確認）
   {
-    let release;
-    const gate = new Promise(r => { release = r; });
-    const e = makeEnv({ store: { cxuan_ledger_v1: savedCache }, fetchImpl: async () => { await gate; throw new Error('network down'); } });
+    const old = JSON.stringify({ uid: 'x', savedAt: Date.now(), data: payload(3) });
+    const e = makeEnv({ store: { cxuan_ledger_v1: old }, fetchImpl: async () => new Promise(() => {}) });
     await e.clickTab(1);
-    A(e.html().includes('NT$ 10,665') && e.cards() === 10, '快取先畫: 立刻看到上次資料');
-    A(e.sync().text.includes('正在更新'), '快取先畫: 狀態列顯示正在更新');
-    release(); await e.clickTab(1); await tick(10);
-    A(e.html().includes('NT$ 10,665'), '背景失敗: 資料要留著');
-    A(e.sync().text.includes('資料可能不是最新') && e.sync().cls.includes('warn'), '背景失敗: 小字警示, got=' + e.sync().text);
+    A(!e.html().includes('NT$'), '殘留舊快取: 等後端確認前不得顯示金額');
+    A(e.sync().text.includes('正在載入'), '殘留舊快取: 顯示正在載入');
+  }
+  // 4) 同次打開超過 1 分鐘：照樣顯示＋背景更新；更新失敗 → 小字警示、資料留著（10 分鐘內確認過）
+  {
+    const e = makeEnv({ fetchImpl: okThenFail(payload(3)) });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(e.S.fetches.length === 2, '超過 1 分鐘: 背景更新');
+    A(e.html().includes('NT$ 10,665'), '背景更新失敗: 10 分鐘內確認過的資料留著');
+    A(e.sync().text.includes('資料可能不是最新') && e.sync().cls.includes('warn'), '背景更新失敗: 小字警示, got=' + e.sync().text);
     e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick();
-    A(e.S.fetches.length >= 2, '背景失敗: 點警示列可重試');
+    A(e.S.fetches.length === 3, '背景更新失敗: 點警示列可重試');
   }
-  // 4) 快取是別人的／上個月的 → 不拿出來
+  // 5) 同次打開超過 10 分鐘：重新確認期間畫面不得有舊帳；失敗就只有錯誤畫面
   {
-    const other = savedCache.replace(/"uid":"[^"]+"/, '"uid":"someone-else"');
-    const e = makeEnv({ store: { cxuan_ledger_v1: other }, fetchImpl: async () => new Promise(() => {}) });
+    const d = deferredSeq(payload(3));
+    const e = makeEnv({ fetchImpl: d.impl });
     await e.clickTab(1);
-    A(!e.html().includes('NT$'), '別人的快取: 不得顯示');
-    const old = savedCache.split('"month":"' + MONTH + '"').join('"month":"' + PREV_MONTH + '"');
-    const e2 = makeEnv({ store: { cxuan_ledger_v1: old }, fetchImpl: async () => new Promise(() => {}) });
-    await e2.clickTab(1);
-    A(!e2.html().includes('NT$'), '上個月的快取: 不得當本月顯示');
+    e.advance(11 * 60 * 1000);
+    await e.clickTab(0); await e.clickTab(1);
+    A(d.calls.length === 2, '超過 10 分鐘: 重新打 API');
+    A(!e.html().includes('NT$') && e.sync().text.includes('正在載入'), '超過 10 分鐘: 重新確認期間不得顯示舊帳');
+    d.calls[1].rej(new Error('network down')); await tick(10);
+    A(e.html().includes('連不上帳務資料') && !e.html().includes('NT$'), '超過 10 分鐘＋失敗: 只有錯誤畫面');
   }
-  // 5) 不在名單 403／驗證失敗 401：只一句話、無金額、清快取
+  // 6) 頁面停留跨月：上個月的帳不得當本月顯示（LL-R1-04）
+  {
+    const d = deferredSeq(payload(3));
+    const e = makeEnv({ fetchImpl: d.impl });
+    await e.clickTab(1);
+    A(e.html().includes('NT$ 10,665'), '跨月前: 有資料');
+    e.advance(msToNextTaipeiMonth() + 10 * 1000); // 跨到下個月 1 號 00:00:10
+    await e.clickTab(0); await e.clickTab(1);
+    A(d.calls.length === 2, '跨月: 立刻重抓');
+    A(!e.html().includes('NT$'), '跨月: 重新確認期間不得顯示上月金額');
+    d.calls[1].rej(new Error('network down')); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('連不上帳務資料'), '跨月＋更新失敗: 不得保留上月金額');
+  }
+  // 6b) 背景更新途中超過 10 分鐘才失敗：不得留著過期的帳
+  {
+    const d = deferredSeq(payload(3));
+    const e = makeEnv({ fetchImpl: d.impl });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1);
+    A(d.calls.length === 2 && e.html().includes('NT$ 10,665'), '背景更新中: 10 分鐘內確認過的資料照樣顯示');
+    e.advance(10 * 60 * 1000);
+    d.calls[1].rej(new Error('network down')); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('連不上帳務資料'), '更新途中過期又失敗: 清掉金額');
+  }
+  // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {
-    const e = makeEnv({ store: { cxuan_ledger_v1: savedCache }, fetchImpl: async () => jsonResp(st, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' }) });
+    const e = makeEnv({ fetchImpl: async () => jsonResp(st, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' }) });
     await e.clickTab(1); await tick(10);
     A(e.html().includes('無權限，請從分店群組開啟或聯絡總部'), st + ': 顯示無權限');
-    A(!e.html().includes('NT$'), st + ': 不得留任何金額（含快取）');
-    A(!('cxuan_ledger_v1' in e.ls), st + ': 清掉快取');
+    A(!e.html().includes('NT$'), st + ': 不得有任何金額');
   }
-  // 6) 連不上（無快取）：錯誤畫面＋重試鈕；逾時寫連線逾時
+  {
+    let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : jsonResp(403, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' }); } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(e.html().includes('無權限') && !e.html().includes('NT$'), '同次打開中被移出名單: 立刻清掉金額');
+    A(e.sync().text === '', '被移出名單: 狀態列清空');
+    const before = e.S.fetches.length;
+    await e.clickTab(0); await e.clickTab(1); await tick(10);
+    A(e.S.fetches.length === before + 1, '被移出名單後再切回: 記憶體也清了，必須重新確認');
+  }
+  // 8) 連不上（第一次）：錯誤畫面＋重試鈕；逾時寫連線逾時；重試成功顯示資料
   {
     let n = 0;
     const e = makeEnv({ fetchImpl: async () => { n++; if (n === 1) { const er = new Error('aborted'); er.name = 'AbortError'; throw er; } return jsonResp(200, payload(2)); } });
@@ -176,19 +233,19 @@ const jsonResp = (status, obj) => ({ ok: status >= 200 && status < 300, status, 
     await e.clickBody('[data-ledger-retry]'); await tick(10);
     A(e.html().includes('NT$ 10,665'), '連不上→重試: 成功後顯示資料');
   }
-  // 7) 後端 503（有訊息）：用後端訊息
+  // 9) 後端 503（有訊息）：用後端訊息
   {
     const e = makeEnv({ fetchImpl: async () => jsonResp(503, { ok: false, code: 'unavailable', message: '帳務資料暫時讀不到，請稍後再試' }) });
     await e.clickTab(1); await tick(10);
     A(e.html().includes('帳務資料暫時讀不到，請稍後再試'), '503: 顯示後端訊息');
   }
-  // 8) 空狀態
+  // 10) 空狀態
   {
     const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(0, { store: '西屯店', total: 0, orderCount: 0, voidedOrderCount: 0 })) });
     await e.clickTab(1); await tick(10);
     A(e.html().includes('本月尚無叫貨單') && e.html().includes('NT$ 0') && e.html().includes('共 0 張單'), '空狀態: 文案與 0 元');
   }
-  // 9) 後端標 stale：狀態列警示
+  // 11) 後端標 stale：狀態列警示
   {
     const e = makeEnv({ fetchImpl: async () => jsonResp(200, payload(2, { stale: true })) });
     await e.clickTab(1); await tick(10);

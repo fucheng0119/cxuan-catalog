@@ -802,22 +802,23 @@ updateCart();
 // ============= 我的叫貨（2026-10-18 第一段・唯讀） =============
 // 老闆：店長名單認身分、不開跨店、只顯示本月叫貨金額。
 // 身分：前端只送 LIFF access token；後端向 LINE 驗證出真實 userId，再依店長名單決定店別。
-// ⛔本頁沒有店別選單、不讀網址參數；群外開啟只顯示提示，不打 API、不顯示任何金額（含快取）。
-// 載入比照商品清單：localStorage 快取先畫、背景向後端更新、60 秒逾時、失敗小字警示可點重試。
+// ⛔本頁沒有店別選單、不讀網址參數；群外開啟只顯示提示，不打 API、不顯示任何金額。
+// ⛔金額只在後端「這次」確認身分後才顯示，不存手機（審查 LL-R1-01：被移出名單或改綁店的人不能先看到舊帳）；
+//   同一次打開中切回本分頁，才沿用 10 分鐘內剛確認過的資料，超過 1 分鐘在背景更新；跨月立刻清掉重抓。
+// 載入比照商品清單的提示：狀態列「正在載入／更新」、60 秒逾時、失敗小字警示可點重試。
 // 叫貨頁程式（上一個 script 區塊）一字不動；本段只用自己的元素與 liff 物件。
 (() => {
   const LEDGER_API = 'https://cxuan-line-advisor.fly.dev/liff/store-ledger';
-  const LEDGER_CACHE_KEY = 'cxuan_ledger_v1';
   const LEDGER_FETCH_TIMEOUT_MS = 60 * 1000;
-  const LEDGER_REFRESH_MS = 60 * 1000; // 切回本分頁時，距上次成功更新超過 1 分鐘才重抓
+  const LEDGER_REFRESH_MS = 60 * 1000;     // 切回本分頁時，距上次確認超過 1 分鐘就背景更新
+  const LEDGER_KEEP_MS = 10 * 60 * 1000;   // 同一次打開中，確認過的資料最多沿用 10 分鐘
   const LEDGER_PAGE = 10;
   const LEDGER_NOTE = '※ 依叫貨單批發價估算，非正式請款';
 
-  let data = null;   // 畫面上的帳（後端白名單回傳）
+  let data = null;   // 後端確認身分後回的帳（白名單欄位），只放記憶體
   let shown = 0;     // 已畫出的張數
   let syncing = false;
-  let lastOkAt = 0;
-  let uidKey = null; // userId 的雜湊，只用來把快取綁在本人身上
+  let lastOkAt = 0;  // 上次確認成功的時間
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -827,15 +828,7 @@ updateCart();
     return m ? `${+m[1]}/${+m[2]} ${m[3]}:${m[4]}` : '';
   };
   const taipeiMonth = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
-  const hashUid = s => {
-    let a = 0x811c9dc5, b = 0x01000193;
-    for (let i = 0; i < s.length; i++) {
-      const c = s.charCodeAt(i);
-      a = Math.imul(a ^ c, 16777619) >>> 0;
-      b = Math.imul(b ^ c, 2246822519) >>> 0;
-    }
-    return a.toString(16) + '-' + b.toString(16);
-  };
+  const usable = () => !!data && data.month === taipeiMonth() && Date.now() - lastOkAt < LEDGER_KEEP_MS;
 
   function setSync(text, cls) {
     const el = $('ledger-sync');
@@ -843,22 +836,13 @@ updateCart();
     el.className = 'ledger-sync' + (text ? ' show' : '') + (cls ? ' ' + cls : '');
   }
 
-  // 快取只認「同一人、同一個月」；換帳號或跨月一律不拿舊資料出來
-  function readCache() {
-    if (!uidKey) return null;
-    try {
-      const c = JSON.parse(localStorage.getItem(LEDGER_CACHE_KEY) || 'null');
-      if (c && c.uid === uidKey && c.data && c.data.ok === true && c.data.month === taipeiMonth()) return c;
-    } catch (e) { console.warn('[ledger] cache parse fail', e); }
-    return null;
-  }
-  function writeCache(d) {
-    if (!uidKey) return;
-    try { localStorage.setItem(LEDGER_CACHE_KEY, JSON.stringify({ uid: uidKey, savedAt: Date.now(), data: d })); }
-    catch (e) { console.warn('[ledger] cache write fail', e); }
-  }
-  function clearCache() {
-    try { localStorage.removeItem(LEDGER_CACHE_KEY); } catch (e) {}
+  // 畫面上的金額全部清掉（跨月、過期、無權限、群外都走這裡）
+  function dropData() {
+    data = null;
+    shown = 0;
+    lastOkAt = 0;
+    setSync('');
+    $('ledger-body').innerHTML = '';
   }
 
   function renderNotice(icon, msg, sub, retry) {
@@ -908,9 +892,10 @@ updateCart();
   }
 
   function renderLedger(d) {
+    if (!data || data.store !== d.store) shown = 0; // 換店（改綁）就從頭列
     data = d;
     const orders = Array.isArray(d.orders) ? d.orders : [];
-    shown = Math.min(orders.length, Math.max(shown, LEDGER_PAGE)); // 背景換新資料時保留已載入的張數
+    shown = Math.min(orders.length, Math.max(shown, LEDGER_PAGE)); // 背景更新時保留已載入的張數
     const month = String(d.month || '').slice(5, 7);
     let html = '<div class="ledger-card">'
       + `<div class="ledger-head"><span>🏬 ${esc(d.store)}</span><span class="ledger-month">${month ? (+month) + ' 月' : ''}</span></div>`
@@ -954,10 +939,8 @@ updateCart();
       let body = null;
       try { body = await resp.json(); } catch (e) {}
       if (resp.status === 401 || resp.status === 403) {
-        // 驗證失敗／不在名單：清掉快取、只顯示一句話，不顯示任何金額
-        data = null;
-        clearCache();
-        setSync('');
+        // 驗證失敗／不在名單：清掉畫面上的帳，只顯示一句話
+        dropData();
         renderNotice('🔒', (body && body.message) || '無權限，請從分店群組開啟或聯絡總部');
         return;
       }
@@ -967,17 +950,16 @@ updateCart();
         throw e;
       }
       lastOkAt = Date.now();
-      writeCache(body);
       renderLedger(body);
       if (body.stale) setSync(`⚠ 總部資料暫時無法更新，顯示 ${fmtWhen(body.asOf)} 的資料。點這裡重試`, 'warn');
       else setSync('');
       console.log('[ledger] synced:', body.orderCount, 'orders');
     } catch (err) {
       console.error('[ledger] sync failed:', err);
-      if (data) {
+      if (usable()) {
         setSync(`⚠ 資料可能不是最新（顯示 ${fmtWhen(data.asOf)} 的資料）。點這裡重試`, 'warn');
       } else {
-        setSync('');
+        dropData();
         renderNotice('📡', (err && err.userMsg) || '連不上帳務資料，請確認網路後再試', err && err.name === 'AbortError' ? '連線逾時' : '', true);
       }
     } finally { syncing = false; }
@@ -996,22 +978,14 @@ updateCart();
     const ok = await liffReady();
     let ctx = null;
     try { ctx = ok ? liff.getContext() : null; } catch (e) {}
-    if (!ok) { renderNotice('⚠️', 'LINE 載入失敗，請關閉後重新開啟'); return; }
+    if (!ok) { dropData(); renderNotice('⚠️', 'LINE 載入失敗，請關閉後重新開啟'); return; }
     if (!ctx || ctx.type !== 'group') {
-      data = null;
-      setSync('');
+      dropData();
       renderNotice('👥', '請從分店群組開啟「我的叫貨」', '在分店的 LINE 群組裡點叫貨連結，再切到「我的叫貨」');
       return;
     }
-    uidKey = ctx.userId ? hashUid(String(ctx.userId)) : null;
-    if (!data) {
-      const c = readCache();
-      if (c) {
-        renderLedger(c.data);
-        console.log('[ledger] cache first:', (c.data.orders || []).length, 'orders, saved at', new Date(c.savedAt).toLocaleString());
-      }
-    }
-    if (!syncing && Date.now() - lastOkAt > LEDGER_REFRESH_MS) syncLedger();
+    if (data && !usable()) dropData(); // 跨月或超過 10 分鐘：舊帳不留在畫面上，重新確認（審查 LL-R1-04）
+    if (!syncing && (!data || Date.now() - lastOkAt > LEDGER_REFRESH_MS)) syncLedger();
   }
 
   document.querySelectorAll('.main-tab').forEach(tab => tab.addEventListener('click', () => {
@@ -1029,7 +1003,7 @@ updateCart();
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) showMore();
   });
   $('ledger-body').addEventListener('click', e => {
-    if (e.target.closest('[data-ledger-retry]')) { lastOkAt = 0; openLedger(); }
+    if (e.target.closest('[data-ledger-retry]')) openLedger();
     else if (e.target.closest('.ledger-more.tap')) showMore();
   });
   $('ledger-sync').addEventListener('click', () => {
