@@ -866,6 +866,13 @@ updateCart();
     dropData();
     renderNotice('👥', '請從分店群組開啟「我的叫貨」', '在分店的 LINE 群組裡點叫貨連結，再切到「我的叫貨」');
   }
+  // 畫面上要保留或追加金額前的共同關卡：群外就清掉；跨月或過期就清掉、人在本頁就重新確認（LL-R4-01）
+  function dataStillValid() {
+    if (!data) return false;
+    if (!groupContext()) { showGroupOnly(); return false; }
+    if (!usable()) { dropData(); if (ledgerActive()) syncLedger(); return false; }
+    return true;
+  }
 
   function renderNotice(icon, msg, sub, retry) {
     $('ledger-body').innerHTML = `<div class="ledger-notice"><div class="big">${icon}</div>${esc(msg)}`
@@ -903,7 +910,7 @@ updateCart();
     }
   }
   function showMore() {
-    if (!data) return;
+    if (!dataStillValid()) return; // 群外、跨月或過期：不追加任何金額（LL-R4-01）
     const orders = data.orders || [];
     if (shown >= orders.length) return;
     const next = orders.slice(shown, shown + LEDGER_PAGE);
@@ -995,6 +1002,7 @@ updateCart();
     } catch (err) {
       if (myGen !== gen) return;
       console.error('[ledger] sync failed:', err);
+      if (!groupContext()) { showGroupOnly(); return; } // 失敗時也先確認情境，群外不留金額（LL-R4-01）
       if (usable()) {
         setSync(`⚠ 資料可能不是最新（顯示 ${fmtWhen(data.asOf)} 的資料）。點這裡重試`, 'warn');
       } else {
@@ -1027,11 +1035,7 @@ updateCart();
 
   // 停在本頁跨月／過期、或從背景切回來：舊帳立刻清掉；人在本頁就重新確認（LL-R2-03）
   function recheck() {
-    if (!data) return;
-    if (!groupContext()) { showGroupOnly(); return; } // 情境不是群組：畫面上的帳立刻清掉（LL-R3-01）
-    if (usable()) return;
-    dropData();
-    if (ledgerActive()) syncLedger();
+    dataStillValid(); // 群外立刻清掉（LL-R3-01）；跨月／過期清掉並重新確認
   }
   setInterval(recheck, LEDGER_RECHECK_MS);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recheck(); });

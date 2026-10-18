@@ -352,6 +352,38 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     e.els['ledger-sync'].listeners.click.forEach(f => f()); await tick(10);
     A(n === 2 && !e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R3-01b: 群外點警示列＝不打 API、清掉金額, n=' + n);
   }
+  // R4-01a) 群內載入 23 張後情境變群外：拉到底或點「載入更多」都不得再加金額
+  for (const how of ['scroll', 'tap']) {
+    let n = 0;
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => { n++; return jsonResp(200, payload(23)); } });
+    await e.clickTab(1);
+    A(e.cards() === 10, 'R4-01a ' + how + ': 先有 10 張');
+    e.setCtx({ type: 'utou', userId: UID });
+    if (how === 'scroll') await e.scrollBottom(); else await e.clickBody('.ledger-more.tap');
+    A(e.cards() === 0 && !e.html().includes('NT$') && e.html().includes('請從分店群組開啟') && n === 1, 'R4-01a ' + how + ': 群外不追加、清掉金額、不打 API');
+  }
+  // R4-01b) 背景更新進行中變群外、接著更新失敗：不得保留金額
+  {
+    const pend = []; let n = 0;
+    const ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID };
+    const e = makeEnv({ ctx, fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(3)) : new Promise((a, b) => pend.push({ a, b })); } });
+    await e.clickTab(1);
+    e.advance(61 * 1000);
+    await e.clickTab(0); await e.clickTab(1);
+    e.setCtx({ type: 'utou', userId: UID });
+    pend[0].b(new Error('network down')); await tick(10);
+    A(!e.html().includes('NT$') && e.html().includes('請從分店群組開啟'), 'R4-01b: 群外時更新失敗＝清掉金額、不留警示');
+  }
+  // R4-01c) 跨月後（還沒輪到定時檢查）拉到底：不追加上月帳，清掉並重新確認
+  {
+    const pend = []; let n = 0;
+    const e = makeEnv({ fetchImpl: async () => { n++; return n === 1 ? jsonResp(200, payload(23)) : new Promise((a, b) => pend.push({ a, b })); } });
+    await e.clickTab(1);
+    e.advance(msToNextTaipeiMonth() + 5000);
+    await e.scrollBottom();
+    A(e.cards() === 0 && !e.html().includes('NT$') && n === 2, 'R4-01c: 跨月後拉到底＝不追加、清掉、重新確認, n=' + n);
+  }
   // R3-03) 跨月重抓的狀態只屬於同一次更新流程：中途被 403 結束，重新開啟後第一筆跨月回應仍要重抓
   {
     const prev = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
