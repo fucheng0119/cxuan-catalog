@@ -148,6 +148,9 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .loading.hide{display:none}
 .spinner{width:32px;height:32px;border:3px solid #f0f2f5;border-top-color:#a16207;border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.sync-bar{display:none;flex-shrink:0;background:#fffbeb;color:#a16207;padding:5px 12px;font-size:11px;line-height:1.4;text-align:center;border-bottom:1px solid #fde68a}
+.sync-bar.show{display:block}
+.sync-bar.warn{background:#fff7e6;color:#92400e;border-bottom-color:#fef3c7;cursor:pointer}
 </style>
 </head>
 <body>
@@ -176,6 +179,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
     <div class="cat-tab" data-cat="all">全部</div>
     <!-- 廠商分類 tab 由 renderVendorTabs() 動態注入（依商品數量 desc 排序） -->
   </div>
+  <div class="sync-bar" id="sync-bar" onclick="syncProducts()"></div>
   <div class="scroll-area" id="products"></div>
   <div class="cart-bar">
     <div class="cart-icon">🛒<span class="cart-badge" id="cart-count">0</span></div>
@@ -287,11 +291,12 @@ async function initLiff() {
 initLiff();
 
 // 商品（cx 短碼 + 真實名 + 廠商 + 進貨價 + 售價）
-// 商品 — dynamic fetch from GAS Web App + localStorage cache 1hr
+// 商品 — 2026-10-18 起：開頁先用 localStorage 快取立刻渲染，背景再向定價庫 GAS 更新（與分店叫貨 LIFF 同一套）
 let products = [];
 const PRODUCTS_API = 'https://script.google.com/macros/s/AKfycbyYJo8-02TMACwfk7mnOC5sJvBCwH02Tb1TP6CJJed-8FwDx0Id9UArzQKYk2E5zbg7gA/exec?action=products';
-const PRODUCTS_CACHE_KEY = 'cxuan_products_v1';
-const PRODUCTS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hr
+const PRODUCTS_CACHE_KEY = 'cxuan_products_20261015';
+// 不再以 TTL 決定要不要打 API；此為背景同步逾時（定價庫 GAS 偶爾一趟要 40 秒以上；逾時只影響狀態列，可點狀態列重試）
+const PRODUCTS_FETCH_TIMEOUT_MS = 60 * 1000;
 
 // 2026-08-04：3M／舒萬諾合作未成立，從 LIFF 下架該供應線。
 // 只擋主供應商為 3M／舒萬諾的商品；盛智_3m商用與家享 3m 零件仍可叫貨。
@@ -303,56 +308,110 @@ function isRetiredSolventumProduct(p) {
     .split('/')[0].trim().replace(/\s+/g, '').toLowerCase();
   return RETIRED_SOLVENTUM_VENDORS.has(primaryVendor);
 }
+// 2026-10-15：G-RO600G白／黑已停售，舊快取也不得重新顯示或送單。
+const RETIRED_PRODUCT_CODES = new Set(['cx796', 'cx797']);
+function isRetiredProductCode(cx) {
+  return RETIRED_PRODUCT_CODES.has(String(cx || '').trim().toLowerCase());
+}
 function filterOrderableProducts(items) {
   return (Array.isArray(items) ? items : []).filter(
-    p => p && p.vendor && Number(p.cost) > 0 && !isRetiredSolventumProduct(p)
+    p => p && p.vendor && Number(p.cost) > 0 && !isRetiredSolventumProduct(p) && !isRetiredProductCode(p.cx)
   );
 }
 
-async function loadProducts() {
-  // Try fresh cache first (avoid hitting GAS too often)
-  try {
-    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
-    if (raw) {
-      const obj = JSON.parse(raw);
-      const age = Date.now() - obj.time;
-      if (age < PRODUCTS_CACHE_TTL_MS && Array.isArray(obj.products) && obj.products.length > 0) {
-        products = filterOrderableProducts(obj.products);
-        console.log('[products] cache hit:', products.length, 'items, age', Math.round(age/1000)+'s');
-        return;
-      }
-    }
-  } catch (e) { console.warn('[products] cache parse fail', e); }
+// ============= 商品載入 =============
+// 2026-10-18 秒開：開頁先用上次快取的清單立刻渲染，背景再向定價庫抓最新價格、無感換上。
+// 換清單時保留購物車數量、搜尋字與目前分類；抓不到就留著快取，並以小字警示「價格可能不是最新」。
+// 送單邏輯（submitOrder／payload／webhook）與 liff.init 行為完全不動。
+let productsSyncing = false;
 
-  // Fetch fresh
-  console.log('[products] fetching fresh from API...');
+function readProductsCache() {
   try {
-    const resp = await fetch(PRODUCTS_API, { redirect: 'follow' });
+    const obj = JSON.parse(localStorage.getItem(PRODUCTS_CACHE_KEY) || 'null');
+    if (obj && Array.isArray(obj.products) && obj.products.length > 0) return obj;
+  } catch (e) { console.warn('[products] cache parse fail', e); }
+  return null;
+}
+function writeProductsCache(items, updatedAt) {
+  try {
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: items, time: Date.now(), updatedAt: updatedAt || null }));
+  } catch (e) { console.warn('[products] cache write fail', e); }
+}
+function fmtClock(ts) {
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function setSyncBar(text, cls) {
+  const el = document.getElementById('sync-bar');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'sync-bar' + (text ? ' show' : '') + (cls ? ' ' + cls : '');
+}
+
+// 換上新清單：重建廠商 tab 但保留目前分類、搜尋字與購物車；價格若有變動，購物車小計跟著更新
+function applyProducts(list) {
+  products = list;
+  const activeEl = document.querySelector('.cat-tab.active');
+  const activeCat = (activeEl && activeEl.dataset && activeEl.dataset.cat) || 'hot';
+  renderVendorTabs();
+  const tabs = Array.from(document.querySelectorAll('.cat-tab'));
+  const keep = tabs.find(el => el.dataset.cat === activeCat) || tabs.find(el => el.dataset.cat === 'hot');
+  tabs.forEach(el => el.classList.toggle('active', el === keep));
+  renderProducts(keep ? keep.dataset.cat : activeCat, document.getElementById('search').value);
+  updateCart();
+}
+
+async function fetchProductsLive() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), PRODUCTS_FETCH_TIMEOUT_MS);
+  try {
+    const resp = await fetch(PRODUCTS_API + '&_=' + Date.now(), { redirect: 'follow', cache: 'no-store', signal: ctrl.signal });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    if (!data.products) throw new Error('bad response: ' + JSON.stringify(data).slice(0,200));
-    // Filter out incomplete rows (no vendor or 0 cost)
-    products = filterOrderableProducts(data.products);
-    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: products, time: Date.now() }));
-    console.log('[products] fetched fresh:', products.length, 'items (filtered from', data.products.length+')');
+    if (!data || !Array.isArray(data.products) || data.products.length === 0) throw new Error('bad response');
+    return data;
+  } finally { clearTimeout(timer); }
+}
+
+async function syncProducts() {
+  if (productsSyncing) return;
+  productsSyncing = true;
+  setSyncBar(products.length > 0 ? '⟳ 正在同步定價庫最新價格…' : '⟳ 正在載入商品清單…');
+  try {
+    const data = await fetchProductsLive();
+    const fresh = filterOrderableProducts(data.products);
+    if (fresh.length === 0) throw new Error('no orderable products');
+    // 購物車裡若有商品不在新清單（定價庫刪列或暫時漏列），沿用舊資料，⛔不清購物車
+    Object.keys(cart).forEach(cx => {
+      if (fresh.some(p => p.cx === cx)) return;
+      const old = products.find(p => p.cx === cx);
+      if (old) { fresh.push(old); console.warn('[products] 購物車商品已不在定價庫清單，沿用舊資料:', cx); }
+    });
+    writeProductsCache(data.products, data.updatedAt);
+    applyProducts(fresh);
+    setSyncBar('');
+    console.log('[products] synced from API:', fresh.length, 'items (filtered from', data.products.length + ')');
   } catch (err) {
-    console.error('[products] fetch failed:', err);
-    // Fallback to stale cache
-    try {
-      const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (Array.isArray(obj.products) && obj.products.length > 0) {
-          products = filterOrderableProducts(obj.products);
-          console.warn('[products] using stale cache fallback:', products.length, 'items');
-          if (typeof showToast === 'function') showToast('⚠️ 離線模式：使用快取資料');
-          return;
-        }
-      }
-    } catch (_) {}
-    if (typeof showToast === 'function') showToast('❌ 商品載入失敗：' + err.message);
-    products = [];
+    console.error('[products] sync failed:', err);
+    if (products.length > 0) {
+      const c = readProductsCache();
+      setSyncBar('⚠ 價格可能不是最新' + (c && c.time ? `（顯示 ${fmtClock(c.time)} 的清單）` : '') + '。點這裡重試', 'warn');
+    } else {
+      setSyncBar('❌ 商品載入失敗，請確認網路後點這裡重試', 'warn');
+      showToast('❌ 商品載入失敗：' + (err && err.name === 'AbortError' ? '連線逾時' : (err && err.message) || '未知錯誤'));
+    }
+  } finally { productsSyncing = false; }
+}
+
+function loadProducts() {
+  const c = readProductsCache();
+  if (c) {
+    applyProducts(filterOrderableProducts(c.products));
+    console.log('[products] cache first:', products.length, 'items, cached at', fmtClock(c.time));
   }
+  syncProducts();
 }
 const HOT_CX = new Set(["cx476", "cx100", "cx223", "cx7", "cx217", "cx209", "cx208", "cx377", "cx218", "cx8", "cx475", "cx224", "cx226", "cx478", "cx477", "cx128", "cx356", "cx213", "cx40", "cx221", "cx474", "cx207", "cx357", "cx5", "cx232", "cx222", "cx212"]);
 
@@ -613,6 +672,10 @@ function closeModal() { document.getElementById('modal').classList.remove('show'
 
 let submitting = false, pendingOrderId = null;
 async function submitOrder() {
+  if (Object.keys(cart).some(isRetiredProductCode)) {
+    showToast('⚠️ 購物車含已停售的 G-RO600G，請移除後再送出');
+    return;
+  }
   if (submitting) return;
   const note = document.getElementById('note').value;
   const orderItems = Object.entries(cart).map(([cx, qty]) => {
@@ -757,8 +820,8 @@ function showToast(msg, ms) {
   setTimeout(() => t.classList.remove('show'), ms || 4000);
 }
 
-// 啟動：先 init LIFF + 載商品（並行），再 render
-loadProducts().then(() => { renderVendorTabs(); renderProducts('hot'); });
+// 啟動：init LIFF 與商品載入並行；商品先用快取畫出來、背景再同步
+loadProducts();
 updateCart();
 </script>
 </body>
