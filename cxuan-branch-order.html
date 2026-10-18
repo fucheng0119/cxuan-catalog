@@ -112,6 +112,53 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .sync-bar.show{display:block}
 .sync-bar.warn{background:#fff7e6;color:#92400e;border-bottom-color:#fef3c7;cursor:pointer}
 </style>
+<style id="ledger-css">
+/* 2026-10-18「我的叫貨」唯讀分頁（第一段）；叫貨頁樣式不動 */
+.main-tabs{display:flex;background:#fff;flex-shrink:0;border-bottom:1px solid #e5e7eb}
+.main-tab{flex:1;padding:10px 0 9px;font-size:14px;font-weight:600;color:#6b7280;background:none;border:none;border-bottom:2.5px solid transparent;cursor:pointer;font-family:inherit}
+.main-tab.active{color:#0f766e;border-bottom-color:#0d9488}
+.ledger-sync{display:none;flex-shrink:0;background:#f0fdfa;color:#0f766e;padding:5px 12px;font-size:11px;line-height:1.4;text-align:center;border-bottom:1px solid #ccfbf1}
+.ledger-sync.show{display:block}
+.ledger-sync.warn{background:#fff7e6;color:#92400e;border-bottom-color:#fef3c7;cursor:pointer}
+.ledger-card{background:#fff;border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:3px solid #0d9488}
+.ledger-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#0f766e;font-weight:600;margin-bottom:6px}
+.ledger-month{background:#ccfbf1;color:#0f766e;border-radius:10px;padding:1px 8px;font-size:11px}
+.ledger-label{font-size:12px;color:#6b7280}
+.ledger-total{font-size:28px;font-weight:800;color:#111827;letter-spacing:.3px;margin:2px 0 2px;font-variant-numeric:tabular-nums}
+.ledger-count{font-size:12px;color:#374151}
+.ledger-note{font-size:11px;color:#92400e;background:#fffbeb;border-radius:6px;padding:5px 8px;margin-top:8px;line-height:1.5}
+.ledger-warn{font-size:11px;color:#b45309;margin-top:6px}
+.ledger-asof{font-size:10px;color:#9ca3af;margin-top:6px;text-align:right}
+.ledger-section{font-size:12px;color:#6b7280;font-weight:600;padding:2px 4px 6px}
+.ledger-order{background:#fff;border-radius:10px;padding:10px 11px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.lo-head{display:flex;justify-content:space-between;align-items:center}
+.lo-time{font-size:13px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums}
+.lo-status{font-size:11px;font-weight:600;border-radius:10px;padding:1px 8px;background:#ecfdf5;color:#047857}
+.lo-status.void{background:#f3f4f6;color:#9ca3af}
+.lo-status.partial{background:#fff7ed;color:#c2410c}
+.lo-id{font-size:10px;color:#9ca3af;margin:2px 0 6px;word-break:break-all}
+.lo-line{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-top:1px dashed #e5e7eb;font-size:12px;color:#1f2937}
+.lo-name{flex:1;min-width:0;line-height:1.35}
+.lo-name b{color:#0d9488;font-weight:600;margin-right:2px}
+.lo-price{display:block;font-size:10px;color:#9ca3af;margin-top:1px}
+.lo-qty{flex-shrink:0;color:#374151;font-variant-numeric:tabular-nums}
+.lo-amt{flex-shrink:0;min-width:64px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.lo-line.void,.ledger-order.void .lo-line{color:#9ca3af;text-decoration:line-through}
+.lo-line.void .lo-name b,.ledger-order.void .lo-name b{color:#9ca3af}
+.ledger-order.void .lo-time{color:#9ca3af;text-decoration:line-through}
+.lo-review{color:#b45309;font-weight:600;text-decoration:none}
+.lo-foot{display:flex;justify-content:flex-end;gap:6px;font-size:12px;color:#6b7280;border-top:1px solid #f3f4f6;padding-top:6px;margin-top:2px}
+.lo-foot b{color:#111827}
+.ledger-more{text-align:center;color:#9ca3af;font-size:12px;padding:10px 0 18px}
+.ledger-more.tap{color:#0d9488;cursor:pointer;font-weight:600}
+.ledger-empty{text-align:center;color:#6b7280;font-size:13px;padding:28px 10px;background:#fff;border-radius:10px}
+.ledger-empty .big{font-size:30px;margin-bottom:6px}
+.ledger-notice{text-align:center;color:#374151;font-size:14px;padding:36px 16px;background:#fff;border-radius:12px;line-height:1.6}
+.ledger-notice .big{font-size:32px;margin-bottom:8px}
+.ledger-notice small{display:block;color:#9ca3af;font-size:12px;margin-top:6px}
+.ledger-notice .retry{display:block;margin:14px auto 0;padding:8px 18px;border-radius:18px;background:#0d9488;color:#fff;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:inherit}
+.ledger-skel{background:#fff;border-radius:12px;height:132px;margin-bottom:12px;opacity:.7}
+</style>
 </head>
 <body>
 
@@ -131,6 +178,11 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
   </div>
 </div>
 
+<div class="main-tabs" role="tablist">
+  <button class="main-tab active" type="button" role="tab" aria-selected="true" data-view="view-order">🛒 叫貨</button>
+  <button class="main-tab" type="button" role="tab" aria-selected="false" data-view="view-ledger">🧾 我的叫貨</button>
+</div>
+
 <div class="warn-banner" id="warn-banner" style="display:none"></div>
 
 <div class="view active" id="view-order">
@@ -147,6 +199,11 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
     <div class="cart-text"><span id="cart-text">購物車是空的</span></div>
     <button class="send-btn" id="send-btn" disabled onclick="openConfirm()">送出</button>
   </div>
+</div>
+
+<div class="view" id="view-ledger">
+  <div class="ledger-sync" id="ledger-sync"></div>
+  <div class="scroll-area" id="ledger-scroll"><div id="ledger-body"></div></div>
 </div>
 
 <div class="modal-bg" id="qty-modal" onclick="if(event.target===this) closeQtyModal()">
@@ -740,6 +797,245 @@ function showToast(msg, ms) {
 
 loadProducts();
 updateCart();
+</script>
+<script id="ledger-js">
+// ============= 我的叫貨（2026-10-18 第一段・唯讀） =============
+// 老闆：店長名單認身分、不開跨店、只顯示本月叫貨金額。
+// 身分：前端只送 LIFF access token；後端向 LINE 驗證出真實 userId，再依店長名單決定店別。
+// ⛔本頁沒有店別選單、不讀網址參數；群外開啟只顯示提示，不打 API、不顯示任何金額（含快取）。
+// 載入比照商品清單：localStorage 快取先畫、背景向後端更新、60 秒逾時、失敗小字警示可點重試。
+// 叫貨頁程式（上一個 script 區塊）一字不動；本段只用自己的元素與 liff 物件。
+(() => {
+  const LEDGER_API = 'https://cxuan-line-advisor.fly.dev/liff/store-ledger';
+  const LEDGER_CACHE_KEY = 'cxuan_ledger_v1';
+  const LEDGER_FETCH_TIMEOUT_MS = 60 * 1000;
+  const LEDGER_REFRESH_MS = 60 * 1000; // 切回本分頁時，距上次成功更新超過 1 分鐘才重抓
+  const LEDGER_PAGE = 10;
+  const LEDGER_NOTE = '※ 依叫貨單批發價估算，非正式請款';
+
+  let data = null;   // 畫面上的帳（後端白名單回傳）
+  let shown = 0;     // 已畫出的張數
+  let syncing = false;
+  let lastOkAt = 0;
+  let uidKey = null; // userId 的雜湊，只用來把快取綁在本人身上
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtMoney = n => Number(n || 0).toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+  const fmtWhen = iso => {
+    const m = String(iso || '').match(/^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    return m ? `${+m[1]}/${+m[2]} ${m[3]}:${m[4]}` : '';
+  };
+  const taipeiMonth = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
+  const hashUid = s => {
+    let a = 0x811c9dc5, b = 0x01000193;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      a = Math.imul(a ^ c, 16777619) >>> 0;
+      b = Math.imul(b ^ c, 2246822519) >>> 0;
+    }
+    return a.toString(16) + '-' + b.toString(16);
+  };
+
+  function setSync(text, cls) {
+    const el = $('ledger-sync');
+    el.textContent = text || '';
+    el.className = 'ledger-sync' + (text ? ' show' : '') + (cls ? ' ' + cls : '');
+  }
+
+  // 快取只認「同一人、同一個月」；換帳號或跨月一律不拿舊資料出來
+  function readCache() {
+    if (!uidKey) return null;
+    try {
+      const c = JSON.parse(localStorage.getItem(LEDGER_CACHE_KEY) || 'null');
+      if (c && c.uid === uidKey && c.data && c.data.ok === true && c.data.month === taipeiMonth()) return c;
+    } catch (e) { console.warn('[ledger] cache parse fail', e); }
+    return null;
+  }
+  function writeCache(d) {
+    if (!uidKey) return;
+    try { localStorage.setItem(LEDGER_CACHE_KEY, JSON.stringify({ uid: uidKey, savedAt: Date.now(), data: d })); }
+    catch (e) { console.warn('[ledger] cache write fail', e); }
+  }
+  function clearCache() {
+    try { localStorage.removeItem(LEDGER_CACHE_KEY); } catch (e) {}
+  }
+
+  function renderNotice(icon, msg, sub, retry) {
+    $('ledger-body').innerHTML = `<div class="ledger-notice"><div class="big">${icon}</div>${esc(msg)}`
+      + (sub ? `<small>${esc(sub)}</small>` : '')
+      + (retry ? '<button class="retry" type="button" data-ledger-retry="1">重試</button>' : '') + '</div>';
+  }
+
+  function lineHtml(l) {
+    const amt = l.review ? '<span class="lo-review">金額待確認</span>' : '$' + fmtMoney(l.subtotal);
+    const price = l.price == null ? '' : `<span class="lo-price">單價 $${fmtMoney(l.price)}</span>`;
+    return `<div class="lo-line${l.status === '已作廢' ? ' void' : ''}">`
+      + `<span class="lo-name">${l.cx ? `<b>${esc(l.cx)}</b>` : ''}${esc(l.name)}${price}</span>`
+      + `<span class="lo-qty">×${l.qty == null ? '?' : fmtMoney(l.qty)}</span><span class="lo-amt">${amt}</span></div>`;
+  }
+  function orderHtml(o) {
+    const st = o.status === '已作廢' ? 'void' : o.status === '部分作廢' ? 'partial' : '';
+    const foot = st === 'void' ? '已作廢，不計入合計' : `小計 <b>$${fmtMoney(o.subtotal)}</b>${o.review ? '（另有金額待確認）' : ''}`;
+    return `<div class="ledger-order${st === 'void' ? ' void' : ''}">`
+      + `<div class="lo-head"><span class="lo-time">${esc(fmtWhen(o.time))}</span><span class="lo-status${st ? ' ' + st : ''}">${esc(o.status)}</span></div>`
+      + (o.id ? `<div class="lo-id">${esc(o.id)}</div>` : '')
+      + (o.lines || []).map(lineHtml).join('')
+      + `<div class="lo-foot">${foot}</div></div>`;
+  }
+
+  function updateMore() {
+    const el = $('ledger-more');
+    if (!el || !data) return;
+    const total = (data.orders || []).length;
+    if (shown < total) {
+      el.className = 'ledger-more tap';
+      el.textContent = `拉到底自動載入更多（還有 ${total - shown} 張）`;
+    } else {
+      el.className = 'ledger-more';
+      el.textContent = data.listTruncated ? `只列出最近 ${total} 張` : '沒有更多了';
+    }
+  }
+  function showMore() {
+    if (!data) return;
+    const orders = data.orders || [];
+    if (shown >= orders.length) return;
+    const next = orders.slice(shown, shown + LEDGER_PAGE);
+    shown += next.length;
+    const list = $('ledger-list');
+    if (list) list.insertAdjacentHTML('beforeend', next.map(orderHtml).join(''));
+    updateMore();
+  }
+
+  function renderLedger(d) {
+    data = d;
+    const orders = Array.isArray(d.orders) ? d.orders : [];
+    shown = Math.min(orders.length, Math.max(shown, LEDGER_PAGE)); // 背景換新資料時保留已載入的張數
+    const month = String(d.month || '').slice(5, 7);
+    let html = '<div class="ledger-card">'
+      + `<div class="ledger-head"><span>🏬 ${esc(d.store)}</span><span class="ledger-month">${month ? (+month) + ' 月' : ''}</span></div>`
+      + '<div class="ledger-label">本月叫貨合計</div>'
+      + `<div class="ledger-total">NT$ ${fmtMoney(d.total)}</div>`
+      + `<div class="ledger-count">共 ${Number(d.orderCount) || 0} 張單・不含已作廢</div>`
+      + `<div class="ledger-note">${LEDGER_NOTE}</div>`
+      + (d.reviewLineCount > 0 ? `<div class="ledger-warn">另有 ${Number(d.reviewLineCount)} 項金額待確認，未計入合計</div>` : '')
+      + (d.undatedRowCount > 0 ? `<div class="ledger-warn">另有 ${Number(d.undatedRowCount)} 列日期無法辨識，未列入，請洽總部</div>` : '')
+      + `<div class="ledger-asof">資料時間 ${esc(fmtWhen(d.asOf))}</div></div>`;
+    if (orders.length === 0) {
+      html += '<div class="ledger-empty"><div class="big">🗒️</div>本月尚無叫貨單</div>';
+    } else {
+      html += `<div class="ledger-section">最近叫貨</div><div id="ledger-list">${orders.slice(0, shown).map(orderHtml).join('')}</div>`
+        + '<div class="ledger-more" id="ledger-more"></div>';
+    }
+    $('ledger-body').innerHTML = html;
+    updateMore();
+  }
+
+  async function syncLedger() {
+    if (syncing) return;
+    syncing = true;
+    setSync(data ? '⟳ 正在更新本月叫貨…' : '⟳ 正在載入本月叫貨…');
+    if (!data) $('ledger-body').innerHTML = '<div class="ledger-skel"></div><div class="ledger-skel" style="height:90px"></div>';
+    try {
+      const token = liff.getAccessToken();
+      if (!token) throw new Error('no access token');
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), LEDGER_FETCH_TIMEOUT_MS);
+      let resp;
+      try {
+        resp = await fetch(LEDGER_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ accessToken: token }),
+          cache: 'no-store',
+          signal: ctrl.signal
+        });
+      } finally { clearTimeout(timer); }
+      let body = null;
+      try { body = await resp.json(); } catch (e) {}
+      if (resp.status === 401 || resp.status === 403) {
+        // 驗證失敗／不在名單：清掉快取、只顯示一句話，不顯示任何金額
+        data = null;
+        clearCache();
+        setSync('');
+        renderNotice('🔒', (body && body.message) || '無權限，請從分店群組開啟或聯絡總部');
+        return;
+      }
+      if (!resp.ok || !body || body.ok !== true) {
+        const e = new Error('HTTP ' + resp.status);
+        e.userMsg = body && body.message;
+        throw e;
+      }
+      lastOkAt = Date.now();
+      writeCache(body);
+      renderLedger(body);
+      if (body.stale) setSync(`⚠ 總部資料暫時無法更新，顯示 ${fmtWhen(body.asOf)} 的資料。點這裡重試`, 'warn');
+      else setSync('');
+      console.log('[ledger] synced:', body.orderCount, 'orders');
+    } catch (err) {
+      console.error('[ledger] sync failed:', err);
+      if (data) {
+        setSync(`⚠ 資料可能不是最新（顯示 ${fmtWhen(data.asOf)} 的資料）。點這裡重試`, 'warn');
+      } else {
+        setSync('');
+        renderNotice('📡', (err && err.userMsg) || '連不上帳務資料，請確認網路後再試', err && err.name === 'AbortError' ? '連線逾時' : '', true);
+      }
+    } finally { syncing = false; }
+  }
+
+  let readyPromise = null;
+  function liffReady() {
+    if (!readyPromise) {
+      const ready = (typeof liff !== 'undefined' && liff.ready) ? liff.ready : Promise.resolve();
+      readyPromise = Promise.race([ready.then(() => true, () => false), new Promise(r => setTimeout(() => r(false), 20000))]);
+    }
+    return readyPromise;
+  }
+
+  async function openLedger() {
+    const ok = await liffReady();
+    let ctx = null;
+    try { ctx = ok ? liff.getContext() : null; } catch (e) {}
+    if (!ok) { renderNotice('⚠️', 'LINE 載入失敗，請關閉後重新開啟'); return; }
+    if (!ctx || ctx.type !== 'group') {
+      data = null;
+      setSync('');
+      renderNotice('👥', '請從分店群組開啟「我的叫貨」', '在分店的 LINE 群組裡點叫貨連結，再切到「我的叫貨」');
+      return;
+    }
+    uidKey = ctx.userId ? hashUid(String(ctx.userId)) : null;
+    if (!data) {
+      const c = readCache();
+      if (c) {
+        renderLedger(c.data);
+        console.log('[ledger] cache first:', (c.data.orders || []).length, 'orders, saved at', new Date(c.savedAt).toLocaleString());
+      }
+    }
+    if (!syncing && Date.now() - lastOkAt > LEDGER_REFRESH_MS) syncLedger();
+  }
+
+  document.querySelectorAll('.main-tab').forEach(tab => tab.addEventListener('click', () => {
+    const target = tab.dataset.view;
+    document.querySelectorAll('.main-tab').forEach(t => {
+      const on = t === tab;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === target));
+    if (target === 'view-ledger') openLedger();
+  }));
+  $('ledger-scroll').addEventListener('scroll', e => {
+    const el = e.currentTarget;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) showMore();
+  });
+  $('ledger-body').addEventListener('click', e => {
+    if (e.target.closest('[data-ledger-retry]')) { lastOkAt = 0; openLedger(); }
+    else if (e.target.closest('.ledger-more.tap')) showMore();
+  });
+  $('ledger-sync').addEventListener('click', () => {
+    if ($('ledger-sync').classList.contains('warn')) syncLedger();
+  });
+})();
 </script>
 </body>
 </html>
