@@ -823,6 +823,7 @@ updateCart();
   const LEDGER_LIFF_NOTE = '※ 只含用 LIFF 下的單，依叫貨單批發價估算，非正式請款';
   const LEDGER_PAYABLE_RETRY_MS = 20 * 1000; // 模擬帳還在讀：20 秒後自動再抓（最多 3 次）
   const LEDGER_FORBIDDEN = '無權限，請從分店群組開啟或聯絡總部';
+  const LEDGER_RELOGIN = 'LINE 登入身分有變更，請關閉後重新開啟「我的叫貨」';
 
   let data = null;          // 後端確認身分後回的帳（白名單欄位），只放記憶體
   let shown = 0;            // 已畫出的張數
@@ -831,6 +832,7 @@ updateCart();
   let gen = 0;              // 請求世代：清空時 +1，進行中的舊請求一律作廢
   let inflightCtrl = null;  // 進行中請求的 AbortController
   let refreshTimer = null;  // 模擬帳讀取中的自動再抓
+  let dataToken = null;     // 畫面上的帳是用哪一個登入憑證確認的（換了登入身分就要清掉，L1B-R1-01）
   let payableRetries = 0;
 
   const $ = id => document.getElementById(id);
@@ -858,6 +860,7 @@ updateCart();
     data = null;
     shown = 0;
     lastOkAt = 0;
+    dataToken = null;
     clearTimeout(refreshTimer);
     refreshTimer = null;
     payableRetries = 0;
@@ -869,6 +872,11 @@ updateCart();
   function loggedIn() {
     try { return typeof liff !== 'undefined' && liff.isLoggedIn(); } catch (e) { return false; }
   }
+  function currentToken() {
+    try { return liff.getAccessToken() || null; } catch (e) { return null; }
+  }
+  // 畫面上的帳仍屬於「這次登入的這個人」
+  const sameLogin = () => !!dataToken && currentToken() === dataToken;
   function showLoginNeeded() {
     dropData();
     renderNotice('⚠️', 'LINE 登入還沒完成，請關閉後重新開啟「我的叫貨」');
@@ -877,8 +885,16 @@ updateCart();
   function dataStillValid() {
     if (!data) return false;
     if (!loggedIn()) { showLoginNeeded(); return false; }
-    if (!usable()) { dropData(); if (ledgerActive()) syncLedger(); return false; }
+    // 換了登入身分或跨月／過期：舊帳立刻清掉，人在本頁就用目前身分重新確認（L1B-R1-01、LL-R4-01）
+    if (!sameLogin() || !usable()) { dropData(); if (ledgerActive()) syncLedger(); return false; }
     return true;
+  }
+  // 請求途中換了登入身分：舊回應一律丟掉、畫面清空；同一流程只用新身分重新確認一次，再變就請重新開啟（L1B-R1-01）
+  function tokenChanged(isTokenRetry) {
+    dropData();
+    if (!isTokenRetry) return true;
+    renderNotice('⚠️', LEDGER_RELOGIN);
+    return false;
   }
 
   function renderNotice(icon, msg, sub, retry) {
@@ -978,9 +994,10 @@ updateCart();
   }
 
   // isMonthRetry：只有同一次更新流程裡的「跨月重抓」那一趟是 true，任何新流程一律從 false 開始（LL-R3-03）
-  async function syncLedger(isMonthRetry = false) {
+  // isTokenRetry：同理，「換身分重抓」每個流程最多一次；兩個旗標都沿著同一流程傳下去，重抓總數有上限
+  async function syncLedger(isMonthRetry = false, isTokenRetry = false) {
     if (!loggedIn()) { showLoginNeeded(); return; } // 所有入口都先確認 LINE 已登入
-    if (data && !usable()) dropData(); // 開分頁、重試鈕、警示列…所有入口共用同一檢查（LL-R2-01）
+    if (data && (!usable() || !sameLogin())) dropData(); // 開分頁、重試鈕、警示列…所有入口共用同一檢查（LL-R2-01、L1B-R1-01）
     if (syncing) return;
     syncing = true;
     const myGen = gen;
@@ -988,10 +1005,12 @@ updateCart();
     inflightCtrl = ctrl;
     const timer = setTimeout(() => ctrl.abort(), LEDGER_FETCH_TIMEOUT_MS); // 涵蓋連線與讀本文（LL-R2-04）
     let refetchForMonth = false;
+    let refetchForToken = false;
+    let token = null;
     setSync(data ? '⟳ 正在更新本月叫貨…' : '⟳ 正在載入本月叫貨…');
     if (!data) $('ledger-body').innerHTML = '<div class="ledger-skel"></div><div class="ledger-skel" style="height:90px"></div>';
     try {
-      const token = liff.getAccessToken();
+      token = currentToken();
       if (!token) throw new Error('no access token');
       const resp = await fetch(LEDGER_API, {
         method: 'POST',
@@ -1000,7 +1019,8 @@ updateCart();
         cache: 'no-store',
         signal: ctrl.signal
       });
-      if (myGen !== gen) return; // 已作廢（群外、無權限、跨月或過期清空）
+      if (myGen !== gen) return; // 已作廢（無權限、換身分、跨月或過期清空）
+      if (currentToken() !== token) { refetchForToken = tokenChanged(isTokenRetry); return; } // 請求途中換了登入身分
       if (resp.status === 401 || resp.status === 403) {
         // 驗證失敗／不在名單：標頭一到就清，不等本文；只顯示一句話（LL-R2-04）
         dropData();
@@ -1011,6 +1031,7 @@ updateCart();
       try { body = await resp.json(); } catch (e) { if (ctrl.signal.aborted) throw e; } // 讀本文逾時也算連線逾時
       if (myGen !== gen) return;
       if (!loggedIn()) { showLoginNeeded(); return; } // 落地前再確認一次
+      if (currentToken() !== token) { refetchForToken = tokenChanged(isTokenRetry); return; }
       if (!resp.ok || !body || body.ok !== true) {
         const e = new Error('HTTP ' + resp.status);
         e.userMsg = body && body.message;
@@ -1027,6 +1048,7 @@ updateCart();
         return;
       }
       lastOkAt = Date.now();
+      dataToken = token;
       renderLedger(body);
       clearTimeout(refreshTimer);
       refreshTimer = null;
@@ -1047,7 +1069,8 @@ updateCart();
       if (myGen !== gen) return;
       console.error('[ledger] sync failed:', err);
       if (!loggedIn()) { showLoginNeeded(); return; } // 失敗時也先確認，沒登入不留金額（LL-R4-01）
-      if (usable()) {
+      if (token && currentToken() !== token) { refetchForToken = tokenChanged(isTokenRetry); return; } // 換了身分：不當警示保留
+      if (usable() && sameLogin()) {
         setSync(`⚠ 資料可能不是最新（顯示 ${fmtWhen(data.asOf)} 的資料）。點這裡重試`, 'warn');
       } else {
         dropData();
@@ -1056,7 +1079,8 @@ updateCart();
     } finally {
       clearTimeout(timer);
       if (myGen === gen) { syncing = false; inflightCtrl = null; }
-      if (refetchForMonth) syncLedger(true);
+      if (refetchForMonth) syncLedger(true, isTokenRetry);
+      else if (refetchForToken && ledgerActive()) syncLedger(isMonthRetry, true);
     }
   }
 
@@ -1073,7 +1097,7 @@ updateCart();
     const ok = await liffReady();
     if (!ok) { dropData(); renderNotice('⚠️', 'LINE 載入失敗，請關閉後重新開啟'); return; }
     if (!loggedIn()) { showLoginNeeded(); return; }
-    if (data && !usable()) dropData(); // 跨月或超過 10 分鐘：舊帳不留在畫面上，重新確認（LL-R1-04）
+    if (data && (!usable() || !sameLogin())) dropData(); // 跨月、超過 10 分鐘或換了登入身分：舊帳不留在畫面上，重新確認
     if (!syncing && (!data || Date.now() - lastOkAt > LEDGER_REFRESH_MS)) syncLedger();
   }
 

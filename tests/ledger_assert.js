@@ -12,6 +12,9 @@ const count = (s, needle) => s.split(needle).length - 1;
 const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise(r => setTimeout(r, 0)); };
 const MONTH = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
 const UID = 'U06c36b215f4d9fab6efbe5b180b15ed1';
+const TOKEN_A = 'eyJhbGciOiJIUzI1NiJ9.sandbox-token.sig';
+const TOKEN_B = 'eyJhbGciOiJIUzI1NiJ9.other-member.sig';
+const sentToken = f => (f ? JSON.parse(f.opt.body).accessToken : null);
 const msToNextTaipeiMonth = () => {
   const t = new Date(Date.now() + 8 * 3600e3);
   return Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 1) - (Date.now() + 8 * 3600e3);
@@ -34,7 +37,7 @@ function payload(n, extra) {
 }
 
 function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID }, store = {}, fetchImpl } = {}) {
-  const S = { fetches: [], listExtra: '', lsWrites: 0, loggedIn: true };
+  const S = { fetches: [], listExtra: '', lsWrites: 0, loggedIn: true, token: TOKEN_A };
   let offset = 0;
   const RealDate = Date;
   class FakeDate extends RealDate {
@@ -84,7 +87,7 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
       addEventListener: (t, f) => { (docListeners[t] = docListeners[t] || []).push(f); },
       visibilityState: 'visible'
     },
-    liff: { ready: Promise.resolve(), getContext: () => ctx, isLoggedIn: () => S.loggedIn, getAccessToken: () => 'eyJhbGciOiJIUzI1NiJ9.sandbox-token.sig' },
+    liff: { ready: Promise.resolve(), getContext: () => ctx, isLoggedIn: () => S.loggedIn, getAccessToken: () => S.token },
     fetch: async (url, opt) => { S.fetches.push({ url, opt }); return fetchImpl(url, opt, S); }
   };
   context.window = context;
@@ -98,6 +101,7 @@ function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963
     fireVisible: async () => { (docListeners.visibilitychange || []).forEach(f => f()); await tick(); },
     setCtx: c => { Object.keys(ctx).forEach(k => delete ctx[k]); Object.assign(ctx, c); },
     setLoggedIn: v => { S.loggedIn = v; },
+    setToken: v => { S.token = v; },
     html: () => bodyHtml + S.listExtra,
     cards: () => count(bodyHtml + S.listExtra, 'class="ledger-order'),
     sync: () => ({ text: els['ledger-sync'].textContent, cls: els['ledger-sync'].className }),
@@ -453,6 +457,88 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     A(h.includes('NT$ 615,908') && h.includes('已列帳 NT$ 460,116・待入帳已知 NT$ 155,792'), '1b 嘉義型: 已列帳＋待入帳已知');
     A(h.includes('模擬帳超過 48 小時沒更新') && h.includes('含稅費尚待拆分') && h.includes('疑似已列帳'), '1b: stale／含稅／疑似重複都要提醒');
     A(!h.includes('待帳金額未明'), '1b: 沒有未明金額就不提');
+  }
+  // L1B-R1-01a) 同一支手機換了登入身分（A→B）：A 確認過的帳不得留給 B 看；每個入口都要清掉、改用 B 的憑證重新確認
+  const payloadB = () => {
+    const b = payload(2, { store: '員林店', total: 4321, orderCount: 2,
+      payable: { state: 'ok', goods: 123456, posted: 123456, pendingKnown: 0, unknownCount: 0, taxMixedCount: 0, duplicateCount: 0, cutoff: `${MONTH}-16T22:33:13+08:00`, stale: false, readAt: `${MONTH}-18T22:30:00+08:00` } });
+    b.orders.forEach(o => { o.id = o.id.replace('沙鹿', '員林'); });
+    return b;
+  };
+  for (const how of ['tab', 'interval', 'visible', 'scroll', 'tap', 'warnbar', 'payable-timer']) {
+    let n = 0; const pend = [];
+    const e = makeEnv({ fetchImpl: async () => {
+      n++;
+      if (n === 1) return jsonResp(200, how === 'payable-timer' ? payload(23, { payable: { state: 'loading' } }) : payload(23));
+      if (how === 'warnbar' && n === 2) throw new Error('network down');
+      return new Promise((a, b) => pend.push({ a, b }));
+    } });
+    await e.clickTab(1);
+    if (how === 'warnbar') { e.advance(61 * 1000); await e.clickTab(0); await e.clickTab(1); await tick(10); }
+    A(e.html().includes('NT$') && e.cards() === 10, 'L1B-R1-01a ' + how + ': A 先看到自己的帳');
+    const before = e.S.fetches.length;
+    e.setToken(TOKEN_B);
+    if (how === 'tab') { await e.clickTab(0); await e.clickTab(1); }
+    else if (how === 'interval') await e.fireIntervals();
+    else if (how === 'visible') await e.fireVisible();
+    else if (how === 'scroll') await e.scrollBottom();
+    else if (how === 'tap') await e.clickBody('.ledger-more.tap');
+    else if (how === 'warnbar') e.els['ledger-sync'].listeners.click.forEach(f => f());
+    else e.fireLong(20000);
+    await tick(10);
+    A(!e.html().includes('NT$') && e.cards() === 0, 'L1B-R1-01a ' + how + ': 換身分後 A 的金額與明細立刻清掉');
+    A(e.S.fetches.length === before + 1 && sentToken(e.S.fetches[before]) === TOKEN_B, 'L1B-R1-01a ' + how + ': 改用 B 的憑證重新確認一次, n=' + (e.S.fetches.length - before));
+    if (pend.length) pend[pend.length - 1].a(jsonResp(200, payloadB()));
+    await tick(10);
+    A(e.html().includes('NT$ 123,456') && e.html().includes('員林店') && !e.html().includes('563,674') && !e.html().includes('沙鹿'), 'L1B-R1-01a ' + how + ': B 只看到後端給 B 的帳');
+  }
+  // L1B-R1-01b) 請求途中換身分：A 的回應晚到（200、403、讀本文途中、失敗；第一次載入或背景更新）都不得畫出或保留，改用 B 重新確認
+  for (const kind of ['ok', 'forbidden', 'body', 'fail', 'bg-ok', 'bg-fail']) {
+    let n = 0; const pend = []; let bodyRes = null;
+    const bg = kind.startsWith('bg-');
+    const e = makeEnv({ fetchImpl: async () => {
+      n++;
+      if (bg && n === 1) return jsonResp(200, payload(3));
+      if (kind === 'body' && n === 1) return { ok: true, status: 200, json: () => new Promise(r => { bodyRes = r; }) };
+      return new Promise((a, b) => pend.push({ a, b }));
+    } });
+    await e.clickTab(1);
+    if (bg) { e.advance(61 * 1000); await e.clickTab(0); await e.clickTab(1); }
+    const aIdx = e.S.fetches.length - 1;
+    A(sentToken(e.S.fetches[aIdx]) === TOKEN_A, 'L1B-R1-01b ' + kind + ': A 的請求已發出');
+    e.setToken(TOKEN_B);
+    const aReq = pend[0];
+    if (kind === 'body') { if (bodyRes) bodyRes(payload(3)); }
+    else if (!aReq) A(false, 'L1B-R1-01b ' + kind + ': A 的請求應該還在等');
+    else if (kind === 'ok' || kind === 'bg-ok') aReq.a(jsonResp(200, payload(3)));
+    else if (kind === 'forbidden') aReq.a(jsonResp(403, { ok: false, code: 'forbidden', message: '無權限，請從分店群組開啟或聯絡總部' }));
+    else aReq.b(new Error('network down'));
+    await tick(10);
+    A(!e.html().includes('NT$') && !e.sync().cls.includes('warn') && !e.html().includes('無權限'), 'L1B-R1-01b ' + kind + ': A 的回應不得畫出、不得保留、不得當成 B 的結果');
+    A(e.S.fetches.length === aIdx + 2 && sentToken(e.S.fetches[aIdx + 1]) === TOKEN_B, 'L1B-R1-01b ' + kind + ': 改用 B 的憑證重新確認一次, n=' + n);
+    if (pend.length) pend[pend.length - 1].a(jsonResp(200, payloadB()));
+    await tick(10);
+    A(e.html().includes('NT$ 123,456') && !e.html().includes('563,674'), 'L1B-R1-01b ' + kind + ': B 只看到 B 的帳');
+  }
+  // L1B-R1-01c) 憑證一直變（異常）：每個流程最多重抓一次，之後請重新開啟、不無限重抓；跨月重抓與換身分重抓交錯也有上限
+  {
+    let k = 0;
+    const e = makeEnv({ fetchImpl: async (u, o, S) => { await new Promise(r => setTimeout(r, 0)); S.token = 'tok-' + (++k); return jsonResp(200, payload(3)); } });
+    await e.clickTab(1); await tick(30);
+    A(k === 2 && !e.html().includes('NT$') && e.html().includes('LINE 登入身分有變更'), 'L1B-R1-01c: 一直換身分＝只重抓一次後請重新開啟, k=' + k);
+  }
+  for (const first of ['month', 'token']) {
+    const prev = (() => { const d = new Date(Date.now() + 8 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+    let k = 0;
+    const e = makeEnv({ fetchImpl: async (u, o, S) => {
+      await new Promise(r => setTimeout(r, 0));
+      k++;
+      const tokenTurn = first === 'token' ? k % 2 === 1 : k % 2 === 0;
+      if (tokenTurn) { S.token = 'tok-' + k; return jsonResp(200, payload(3)); }
+      return jsonResp(200, payload(3, { month: prev, total: 999 }));
+    } });
+    await e.clickTab(1); await tick(40);
+    A(k === 3 && !e.html().includes('NT$'), 'L1B-R1-01c ' + first + ' 先: 跨月與換身分交錯，同一流程最多 3 次請求, k=' + k);
   }
   // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {
