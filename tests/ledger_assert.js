@@ -33,7 +33,9 @@ function payload(n, extra) {
     ]
   }));
   return Object.assign({ ok: true, store: '沙鹿店', month: MONTH, asOf: `${MONTH}-18T17:30:00+08:00`, stale: false, total: 10665, orderCount: 6, voidedOrderCount: 1, reviewLineCount: 0, undatedRowCount: 0, orders, listLimit: 60, listTruncated: false,
-    payable: { state: 'ok', goods: 563674, posted: 563674, pendingKnown: 0, unknownCount: 2, taxMixedCount: 0, duplicateCount: 0, cutoff: `${MONTH}-16T22:33:13+08:00`, stale: false, readAt: `${MONTH}-18T22:30:00+08:00` } }, extra || {});
+    payable: { state: 'ok', goods: 563674, posted: 563674, pendingKnown: 0, unknownCount: 2, taxMixedCount: 0, duplicateCount: 0, cutoff: `${MONTH}-16T22:33:13+08:00`, stale: false, readAt: `${MONTH}-18T22:30:00+08:00`,
+      balanceState: 'ok', carryIn: 0, carryOut: 0, confirmedPayment: 0, confirmedService: 0, balance: 563674,
+      unconfirmedPaymentCount: 0, unconfirmedOtherCount: 0, rejectedAdjustmentCount: 0, alreadyNextPeriod: 0 } }, extra || {});
 }
 
 function makeEnv({ ctx = { type: 'group', groupId: 'C6fe1a185ee49446104b177bf963fcba4', userId: UID }, store = {}, fetchImpl } = {}) {
@@ -539,6 +541,65 @@ const okThenFail = (first) => { let n = 0; return async () => { n++; if (n === 1
     } });
     await e.clickTab(1); await tick(40);
     A(k === 3 && !e.html().includes('NT$'), 'L1B-R1-01c ' + first + ' 先: 跨月與換身分交錯，同一流程最多 3 次請求, k=' + k);
+  }
+  // 第二段①本月應付：主數字仍是叫貨貨款；下面列已列帳、前期承接、（轉到下月）、已核對付款、服務抵扣、貨款應付餘額
+  const BALANCE_FIELDS = ['balanceState', 'carryIn', 'carryOut', 'confirmedPayment', 'confirmedService', 'balance',
+    'unconfirmedPaymentCount', 'unconfirmedOtherCount', 'rejectedAdjustmentCount', 'alreadyNextPeriod'];
+  const withBal = (bal) => payload(3, { payable: Object.assign({ state: 'ok', goods: 1278498, posted: 1278498, pendingKnown: 0, unknownCount: 0, taxMixedCount: 0, duplicateCount: 0,
+    cutoff: `${MONTH}-19T22:30:26+08:00`, stale: false, readAt: `${MONTH}-20T10:30:00+08:00`,
+    balanceState: 'ok', carryIn: 0, carryOut: 0, confirmedPayment: 26400, confirmedService: 0, balance: 1252098,
+    unconfirmedPaymentCount: 0, unconfirmedOtherCount: 0, rejectedAdjustmentCount: 0, alreadyNextPeriod: 0 }, bal) });
+  const balHtml = async (body) => { const e = makeEnv({ fetchImpl: async () => jsonResp(200, body) }); await e.clickTab(1); await tick(10); return e.html(); };
+  const MAIN = '<div class="ledger-total">NT$ 1,278,498</div>';
+  {
+    const h = await balHtml(withBal({}));
+    A(h.includes('本月叫貨貨款（模擬帳）') && h.includes(MAIN), '2①: 主數字仍是叫貨貨款');
+    A(h.includes('本月應付（只扣已核對付款）'), '2①: 有本月應付區塊');
+    A(/已列帳貨款<\/span><span>NT\$ 1,278,498</.test(h), '2①: 已列帳貨款');
+    A(/＋前期承接<\/span><span>NT\$ 0</.test(h), '2①: 前期承接');
+    A(/－已核對付款<\/span><span>NT\$ 26,400</.test(h), '2①: 已核對付款');
+    A(/－服務抵扣<\/span><span>NT\$ 0</.test(h), '2①: 服務抵扣');
+    A(/lb-row total"><span>貨款應付餘額<\/span><span>NT\$ 1,252,098</.test(h), '2①: 貨款應付餘額');
+    A(!h.includes('轉到下月'), '2①: 沒有轉出就不列轉到下月');
+    A(h.includes('只扣已核對確認的付款與服務抵扣，待核付款／預繳不扣'), '2①: 只扣已核對付款的說明');
+    A(!/待核，尚未|未通過核查|下期已列|溢額|未計入應付餘額/.test(h), '2①: 沒有待核項目就不提醒');
+    A(h.indexOf('本月應付（只扣已核對付款）') > h.indexOf(MAIN) && h.indexOf('本月應付（只扣已核對付款）') < h.indexOf('其中用 LIFF 叫的'), '2①: 區塊在主數字下面、LIFF 那行上面');
+  }
+  {
+    const h = await balHtml(withBal({ carryIn: 5000, carryOut: 1800, confirmedService: 1200, balance: 1254098,
+      unconfirmedPaymentCount: 1, unconfirmedOtherCount: 2, rejectedAdjustmentCount: 3, alreadyNextPeriod: 35750, pendingKnown: 155792, goods: 1434290 }));
+    A(/＋前期承接<\/span><span>NT\$ 5,000</.test(h) && /－轉到下月<\/span><span>NT\$ 1,800</.test(h) && /－服務抵扣<\/span><span>NT\$ 1,200</.test(h), '2①: 承接轉入、轉到下月、服務抵扣都列出');
+    A(/貨款應付餘額<\/span><span>NT\$ 1,254,098</.test(h), '2①: 餘額照後端');
+    A(h.includes('另有 1 筆付款待核，尚未扣除') && h.includes('另有 2 筆承接／服務抵扣待核，尚未計入') && h.includes('另有 3 筆承接／沖抵未通過核查，尚未計入'), '2①: 待核與未通過核查都要提醒');
+    A(h.includes('另有下期已列貨款 NT$ 35,750，本月未計，不重複承接'), '2①: 下期已列提醒');
+    A(h.includes('待入帳已知 NT$ 155,792 還沒列帳，未計入應付餘額'), '2①: 待入帳已知不在餘額裡要講清楚');
+    A(h.includes('<div class="ledger-total">NT$ 1,434,290</div>'), '2①: 主數字是叫貨貨款（含待入帳已知），不是餘額');
+  }
+  {
+    const h = await balHtml(withBal({ posted: 10000, goods: 10000, balance: -16400 }));
+    A(/貨款應付餘額<\/span><span>−NT\$ 16,400</.test(h) && h.includes('貨款出現已知溢額，尚待分配'), '2①: 溢額要有負號並提醒');
+  }
+  for (const [label, bal, why] of [
+    ['核對沒過', { balanceState: 'invalid', carryIn: null, carryOut: null, confirmedPayment: null, confirmedService: null, balance: null }, '付款與承接資料核查中'],
+    ['底帳待補', { balanceState: 'incomplete', balance: null }, '模擬帳本月底帳待補'],
+    ['ok 但欄位不齊', { balance: null }, '付款與承接資料核查中'],
+    ['ok 但數字是文字', { confirmedPayment: '26400' }, '付款與承接資料核查中'],
+    ['狀態值怪異（防注入）', { balanceState: '<img src=x onerror=alert(1)>' }, '付款與承接資料核查中'],
+  ]) {
+    const h = await balHtml(withBal(bal));
+    A(h.includes(why + '，應付餘額暫不顯示'), '2① ' + label + ': 只寫核查狀態');
+    A(!h.includes('lb-row') && !h.includes('貨款應付餘額'), '2① ' + label + ': 不顯示任何餘額數字');
+    A(h.includes(MAIN), '2① ' + label + ': 主數字照常');
+    A(!h.includes('<img src=x'), '2① ' + label + ': 不得注入');
+  }
+  {
+    const old = withBal({}); BALANCE_FIELDS.forEach(k => { delete old.payable[k]; });
+    const h = await balHtml(old);
+    A(!h.includes('本月應付') && h.includes(MAIN) && h.includes('其中用 LIFF 叫的'), '2①: 後端還沒上第二段＝整區不顯示、其他照舊');
+  }
+  {
+    const h = await balHtml(withBal({ state: 'unavailable' }));
+    A(!h.includes('本月應付') && h.includes('模擬帳暫時讀不到'), '2①: 模擬帳讀不到時（退回 LIFF 合計）不顯示應付區塊');
   }
   // 7) 不在名單 403／驗證失敗 401：只一句話、無金額；同次打開中被移出名單也立刻清掉
   for (const st of [403, 401]) {

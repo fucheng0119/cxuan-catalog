@@ -130,6 +130,11 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .ledger-warn{font-size:11px;color:#b45309;margin-top:6px}
 .ledger-asof{font-size:10px;color:#9ca3af;margin-top:6px;text-align:right}
 .ledger-sub{font-size:12px;color:#374151;border-top:1px dashed #e5e7eb;margin-top:8px;padding-top:7px}
+.ledger-bal{border-top:1px dashed #e5e7eb;margin-top:8px;padding-top:7px}
+.ledger-bal-title{font-size:12px;color:#0f766e;font-weight:600;margin-bottom:4px}
+.lb-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#374151;padding:1px 0;font-variant-numeric:tabular-nums}
+.lb-row.total{font-size:15px;font-weight:800;color:#111827;border-top:1px solid #e5e7eb;margin-top:3px;padding-top:4px}
+.ledger-bal-note{font-size:10px;color:#6b7280;margin-top:5px;line-height:1.5}
 .ledger-section{font-size:12px;color:#6b7280;font-weight:600;padding:2px 4px 6px}
 .ledger-order{background:#fff;border-radius:10px;padding:10px 11px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .lo-head{display:flex;justify-content:space-between;align-items:center}
@@ -810,6 +815,7 @@ updateCart();
 //   清空時讓進行中的舊請求作廢（請求世代），舊回應晚到也不會把金額畫回來（LL-R2-02）。
 //   所有會打 API 的入口（開分頁、重試、警示列、定時檢查、回到前景）都先確認 LINE 已登入；跨月回應只在
 //   同一次更新流程內重抓一次，仍對不上就清空並提示確認手機日期時間（LL-R3-02～03）。
+// 第二段①（老闆 10-22）：主數字下面加「本月應付」——已列帳＋前期承接－已核對付款－服務抵扣＝貨款應付餘額。
 // 載入比照商品清單的提示：狀態列「正在載入／更新」、60 秒逾時（含讀回應本文）、失敗小字警示可點重試。
 // 叫貨頁程式（上一個 script 區塊）一字不動；本段只用自己的元素與 liff 物件。
 (() => {
@@ -943,6 +949,37 @@ updateCart();
     updateMore();
   }
 
+  // 第二段①本月應付（老闆 10-22）：跟 LINE「本月帳款」卡同一份模擬帳、同一支共用解析；只扣已核對確認的付款與服務抵扣，
+  //   待核的一律不扣。核對沒過、欄位不齊或後端還沒有這些欄位：不顯示任何餘額數字（叫貨貨款主數字照常）
+  function balanceHtml(p) {
+    if (!p.balanceState) return ''; // 後端還沒上第二段：整區不顯示
+    const title = '<div class="ledger-bal-title">本月應付（只扣已核對付款）</div>';
+    const ready = p.balanceState === 'ok'
+      && ['posted', 'carryIn', 'carryOut', 'confirmedPayment', 'confirmedService', 'balance'].every(k => Number.isFinite(p[k]));
+    if (!ready) {
+      const why = p.balanceState === 'incomplete' ? '模擬帳本月底帳待補' : '付款與承接資料核查中';
+      return `<div class="ledger-bal">${title}<div class="ledger-warn">${why}，應付餘額暫不顯示</div></div>`;
+    }
+    const money = n => (n < 0 ? '−' : '') + 'NT$ ' + fmtMoney(Math.abs(n));
+    const row = (label, n, cls) => `<div class="lb-row${cls ? ' ' + cls : ''}"><span>${label}</span><span>${money(n)}</span></div>`;
+    const count = k => (Number.isFinite(p[k]) && p[k] > 0 ? p[k] : 0);
+    return '<div class="ledger-bal">' + title
+      + row('已列帳貨款', p.posted)
+      + row('＋前期承接', p.carryIn)
+      + (p.carryOut > 0 ? row('－轉到下月', p.carryOut) : '')
+      + row('－已核對付款', p.confirmedPayment)
+      + row('－服務抵扣', p.confirmedService)
+      + row('貨款應付餘額', p.balance, 'total')
+      + (p.balance < 0 ? '<div class="ledger-warn">貨款出現已知溢額，尚待分配</div>' : '')
+      + (count('unconfirmedPaymentCount') ? `<div class="ledger-warn">另有 ${count('unconfirmedPaymentCount')} 筆付款待核，尚未扣除</div>` : '')
+      + (count('unconfirmedOtherCount') ? `<div class="ledger-warn">另有 ${count('unconfirmedOtherCount')} 筆承接／服務抵扣待核，尚未計入</div>` : '')
+      + (count('rejectedAdjustmentCount') ? `<div class="ledger-warn">另有 ${count('rejectedAdjustmentCount')} 筆承接／沖抵未通過核查，尚未計入</div>` : '')
+      + (count('alreadyNextPeriod') ? `<div class="ledger-warn">另有下期已列貨款 NT$ ${fmtMoney(count('alreadyNextPeriod'))}，本月未計，不重複承接</div>` : '')
+      + (count('pendingKnown') ? `<div class="ledger-warn">待入帳已知 NT$ ${fmtMoney(count('pendingKnown'))} 還沒列帳，未計入應付餘額</div>` : '')
+      + '<div class="ledger-bal-note">不是最終應付額：只扣已核對確認的付款與服務抵扣，待核付款／預繳不扣</div>'
+      + '</div>';
+  }
+
   // 主數字：模擬帳本月貨款（階段 1b）；模擬帳拿不到時退回 LIFF 叫貨合計，並寫清楚只含用 LIFF 下的單
   function summaryHtml(d) {
     const p = d.payable || {};
@@ -958,6 +995,7 @@ updateCart();
         + (p.taxMixedCount > 0 ? `<div class="ledger-warn">另有 ${Number(p.taxMixedCount)} 筆待帳含稅費尚待拆分，尚未加計</div>` : '')
         + (p.duplicateCount > 0 ? `<div class="ledger-warn">另有 ${Number(p.duplicateCount)} 筆待帳疑似已列帳，待核對，尚未加計</div>` : '')
         + (p.stale ? '<div class="ledger-warn">模擬帳超過 48 小時沒更新，最近的單可能還沒算進來</div>' : '')
+        + balanceHtml(p)
         + `<div class="ledger-note">${LEDGER_NOTE}</div>`
         + `<div class="ledger-asof">模擬帳資料讀至 ${esc(fmtWhen(p.cutoff))}</div>`
         + `<div class="ledger-sub">其中用 LIFF 叫的：${liff}（不含已作廢）</div>`;
